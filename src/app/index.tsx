@@ -6,6 +6,8 @@ import { DashboardPage } from '@/pages/dashboard';
 import { MembersPage } from '@/pages/members';
 import { MemberDetailPage } from '@/pages/members/detail';
 import { EventsPage } from '@/pages/events';
+import { CashPage } from '@/pages/cash';
+import { PublicPaymentPage } from '@/pages/public-payment';
 import { AppLayout } from '@/components/layout/AppLayout';
 import type { UserRole } from '@/types';
 
@@ -44,6 +46,7 @@ export const AppRouter: React.FC = () => {
         <Routes>
           {/* Rute Publik */}
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/bayar" element={<PublicPaymentPage />} />
 
           {/* Rute Terlindungi dengan AppLayout */}
           <Route
@@ -84,7 +87,7 @@ export const AppRouter: React.FC = () => {
               path="/cash"
               element={
                 <ProtectedRoute allowedRoles={['superadmin', 'executive']}>
-                  <div className="p-4">Halaman Kas (Tahap 7)</div>
+                  <CashPage />
                 </ProtectedRoute>
               }
             />

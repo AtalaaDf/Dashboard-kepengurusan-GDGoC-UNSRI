@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { EnvelopeIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '@/data/auth/auth-context';
 import { ANIMATIONS } from '@/lib/animations';
-import type { Member, Division, OrganizationEvent } from '@/types';
+import { formatCurrency } from '@/lib/formatters';
+import type { Member, Division, OrganizationEvent, KasSubmission, KasExpense } from '@/types';
 
 export const DashboardPage: React.FC = () => {
   const { role } = useAuth();
@@ -23,12 +24,25 @@ export const DashboardPage: React.FC = () => {
       (e) => e.attendance_finalized && e.status === 'active'
     ).length;
 
+    const rawSubs = localStorage.getItem('gdgoc_kas_submissions');
+    const submissions: KasSubmission[] = rawSubs ? JSON.parse(rawSubs) : [];
+    const totalApproved = submissions
+      .filter((s) => s.status === 'approved')
+      .reduce((sum, s) => sum + s.total_amount, 0);
+    const pendingPaymentsCount = submissions.filter((s) => s.status === 'pending').length;
+
+    const rawExpenses = localStorage.getItem('gdgoc_kas_expenses');
+    const expenses: KasExpense[] = rawExpenses ? JSON.parse(rawExpenses) : [];
+    const totalExpense = expenses.reduce((sum, e) => sum + e.amount, 0);
+
+    const balance = totalApproved - totalExpense;
+
     return {
-      cashBalance: 'Rp2.450.000',
+      cashBalance: formatCurrency(balance),
       activeMembers,
       completedEvents,
       divisionsCount: divisions.length,
-      pendingPaymentsCount: 3,
+      pendingPaymentsCount,
     };
   }, []);
 

@@ -1,6 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import type { Division, Member, OrganizationEvent, Attendance, CompetitionEntry, Punishment } from '@/types';
+import type {
+  Division,
+  Member,
+  OrganizationEvent,
+  Attendance,
+  CompetitionEntry,
+  Punishment,
+  KasSubmission,
+  KasSubmissionItem,
+} from '@/types';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/data/auth/auth-context';
 
@@ -151,13 +160,35 @@ export function useMemberDetail() {
       });
   }, [events, attendances, currentMember]);
 
-  // Data Kas Januari sampai November
+  // Data Kas Januari sampai November dinamis dari item kas yang approved
   const kasMonths: MemberKasMonth[] = useMemo(() => {
+    if (!currentMember) return [];
+
+    const rawSubs = localStorage.getItem('gdgoc_kas_submissions');
+    const submissions: KasSubmission[] = rawSubs ? JSON.parse(rawSubs) : [];
+    const approvedSubIds = new Set(
+      submissions.filter((s) => s.status === 'approved').map((s) => s.id)
+    );
+
+    const rawItems = localStorage.getItem('gdgoc_kas_items');
+    const items: KasSubmissionItem[] = rawItems ? JSON.parse(rawItems) : [];
+    const memberItems = items.filter(
+      (i) => i.member_id === currentMember.id && i.is_active
+    );
+
     return MONTH_NAMES.map((name, idx) => {
       const monthNum = idx + 1;
-      const isPaid = monthNum <= 8; // dummy: lunas sampai Agustus
-      const hasFine = monthNum === 5;
-      const isFinePaid = monthNum === 5;
+      const duesItem = memberItems.find(
+        (i) => i.kind === 'dues' && i.month === monthNum
+      );
+      const isPaid = Boolean(duesItem && approvedSubIds.has(duesItem.submission_id));
+
+      const fineItem = memberItems.find(
+        (i) => i.kind === 'fine' && i.month === monthNum
+      );
+      const hasFine = Boolean(fineItem);
+      const isFinePaid = Boolean(fineItem && approvedSubIds.has(fineItem.submission_id));
+
       return {
         month: monthNum,
         monthName: name,
@@ -166,7 +197,7 @@ export function useMemberDetail() {
         isFinePaid,
       };
     });
-  }, []);
+  }, [currentMember]);
 
   // Catatan lomba untuk member saat ini
   const memberCompetitions = useMemo(() => {

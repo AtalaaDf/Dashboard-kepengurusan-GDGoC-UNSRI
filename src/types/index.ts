@@ -76,3 +76,37 @@ export interface Punishment {
   completed_at?: string | null;
   created_at?: string;
 }
+
+export type KasSubmissionStatus = 'pending' | 'approved' | 'declined';
+export type KasItemKind = 'dues' | 'fine';
+
+export interface KasSubmissionItem {
+  id: string;
+  submission_id: string;
+  member_id: string;
+  kind: KasItemKind;
+  month: number;
+  amount: number;
+  is_active: boolean;
+}
+
+export interface KasSubmission {
+  id: string;
+  member_id: string;
+  status: KasSubmissionStatus;
+  proof_path: string;
+  total_amount: number;
+  submitted_at: string;
+  reviewed_at?: string | null;
+  reviewed_by_role?: UserRole | null;
+  items?: KasSubmissionItem[];
+}
+
+export interface KasExpense {
+  id: string;
+  expense_date: string;
+  description: string;
+  amount: number;
+  recorded_by_role: UserRole;
+  created_at?: string;
+}
