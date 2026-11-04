@@ -5,6 +5,7 @@ import { LoginPage } from '@/pages/login';
 import { DashboardPage } from '@/pages/dashboard';
 import { MembersPage } from '@/pages/members';
 import { MemberDetailPage } from '@/pages/members/detail';
+import { EventsPage } from '@/pages/events';
 import { AppLayout } from '@/components/layout/AppLayout';
 import type { UserRole } from '@/types';
 
@@ -75,7 +76,7 @@ export const AppRouter: React.FC = () => {
               path="/events"
               element={
                 <ProtectedRoute allowedRoles={['superadmin', 'admin', 'po']}>
-                  <div className="p-4">Halaman Event (Tahap 5)</div>
+                  <EventsPage />
                 </ProtectedRoute>
               }
             />

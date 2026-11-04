@@ -1,21 +1,36 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { EnvelopeIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '@/data/auth/auth-context';
 import { ANIMATIONS } from '@/lib/animations';
+import type { Member, Division, OrganizationEvent } from '@/types';
 
 export const DashboardPage: React.FC = () => {
   const { role } = useAuth();
   const canReviewCash = role === 'superadmin' || role === 'executive';
 
-  // Contoh data dummy statistik dashboard sesuai 7.9 dan 6 desain.md
-  const dummyStats = {
-    cashBalance: 'Rp2.450.000',
-    activeMembers: 48,
-    completedEvents: 5,
-    divisionsCount: 4,
-    pendingPaymentsCount: 3,
-  };
+  const stats = useMemo(() => {
+    const rawMembers = localStorage.getItem('gdgoc_members_data');
+    const members: Member[] = rawMembers ? JSON.parse(rawMembers) : [];
+    const activeMembers = members.filter((m) => m.status === 'active').length;
+
+    const rawDivisions = localStorage.getItem('gdgoc_divisions_data');
+    const divisions: Division[] = rawDivisions ? JSON.parse(rawDivisions) : [];
+
+    const rawEvents = localStorage.getItem('gdgoc_events_data');
+    const events: OrganizationEvent[] = rawEvents ? JSON.parse(rawEvents) : [];
+    const completedEvents = events.filter(
+      (e) => e.attendance_finalized && e.status === 'active'
+    ).length;
+
+    return {
+      cashBalance: 'Rp2.450.000',
+      activeMembers,
+      completedEvents,
+      divisionsCount: divisions.length,
+      pendingPaymentsCount: 3,
+    };
+  }, []);
 
   return (
     <div className={`flex flex-col gap-8 ${ANIMATIONS.PAGE_FADE_IN}`}>
@@ -37,12 +52,12 @@ export const DashboardPage: React.FC = () => {
           >
             <div className="relative">
               <EnvelopeIcon className="w-5 h-5 text-[#1e1e1e]" />
-              {dummyStats.pendingPaymentsCount > 0 && (
+              {stats.pendingPaymentsCount > 0 && (
                 <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#ea4335] rounded-full ring-2 ring-white" />
               )}
             </div>
             <span className="text-xs font-medium text-[#1e1e1e]">
-              {dummyStats.pendingPaymentsCount} pembayaran menunggu
+              {stats.pendingPaymentsCount} pembayaran menunggu
             </span>
           </Link>
         )}
@@ -50,12 +65,12 @@ export const DashboardPage: React.FC = () => {
 
       {/* Bento Grid 4 Angka Acuan (desain.md Bab 6) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Kartu 1: Saldo Kas (melebar atau pastel green) */}
+        {/* Kartu 1: Saldo Kas */}
         <div className="p-6 rounded-2xl bg-[#ccf6c5]/50 border border-[#34a853]/20 flex flex-col justify-between min-h-[140px]">
           <span className="text-xs font-medium text-[#1e1e1e]/70">Total Saldo Kas</span>
           <div>
             <p className="text-3xl font-semibold text-[#1e1e1e] tracking-tight">
-              {dummyStats.cashBalance}
+              {stats.cashBalance}
             </p>
             <p className="text-xs text-[#34a853] mt-1 font-medium">Berdasarkan data kas aktif</p>
           </div>
@@ -66,7 +81,7 @@ export const DashboardPage: React.FC = () => {
           <span className="text-xs font-medium text-[#1e1e1e]/70">Member Aktif</span>
           <div>
             <p className="text-3xl font-semibold text-[#1e1e1e] tracking-tight">
-              {dummyStats.activeMembers}
+              {stats.activeMembers}
             </p>
             <p className="text-xs text-[#4285f4] mt-1 font-medium">Dalam batch berjalan</p>
           </div>
@@ -77,7 +92,7 @@ export const DashboardPage: React.FC = () => {
           <span className="text-xs font-medium text-[#1e1e1e]/70">Event Terlaksana</span>
           <div>
             <p className="text-3xl font-semibold text-[#1e1e1e] tracking-tight">
-              {dummyStats.completedEvents}
+              {stats.completedEvents}
             </p>
             <p className="text-xs text-[#1e1e1e]/70 mt-1 font-medium">Absensi telah final</p>
           </div>
@@ -88,25 +103,19 @@ export const DashboardPage: React.FC = () => {
           <span className="text-xs font-medium text-[#1e1e1e]/70">Jumlah Divisi</span>
           <div>
             <p className="text-3xl font-semibold text-[#1e1e1e] tracking-tight">
-              {dummyStats.divisionsCount}
+              {stats.divisionsCount}
             </p>
             <p className="text-xs text-[#ea4335] mt-1 font-medium">Technical & Non-Technical</p>
           </div>
         </div>
       </div>
 
-      {/* Informasi Peran Aktif & Panduan Uji Coba */}
+      {/* Informasi Peran Aktif */}
       <div className="p-6 rounded-2xl border border-[#1e1e1e]/10 bg-white">
         <h2 className="text-base font-semibold text-[#1e1e1e]">Status Akun Jabatan</h2>
         <p className="text-sm text-[#1e1e1e]/70 mt-1">
           Saat ini Anda sedang masuk dengan peran{' '}
           <span className="font-semibold text-[#4285f4] capitalize">{role}</span>.
-          {role === 'superadmin' && (
-            <span>
-              {' '}Sebagai Superadmin, Anda memiliki hak penuh untuk mengakses seluruh menu di sidebar:
-              Dashboard, Member, Event, dan Kas.
-            </span>
-          )}
         </p>
       </div>
     </div>

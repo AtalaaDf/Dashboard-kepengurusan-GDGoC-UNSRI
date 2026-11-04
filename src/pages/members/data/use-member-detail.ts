@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import type { Division, Member } from '@/types';
+import type { Division, Member, OrganizationEvent, Attendance } from '@/types';
 
 export interface MemberEventAttendance {
   eventId: string;
@@ -42,6 +42,16 @@ export function useMemberDetail() {
     return raw ? JSON.parse(raw) : [];
   }, []);
 
+  const events: OrganizationEvent[] = useMemo(() => {
+    const raw = localStorage.getItem('gdgoc_events_data');
+    return raw ? JSON.parse(raw) : [];
+  }, []);
+
+  const attendances: Attendance[] = useMemo(() => {
+    const raw = localStorage.getItem('gdgoc_attendances_data');
+    return raw ? JSON.parse(raw) : [];
+  }, []);
+
   const currentMember = useMemo(() => {
     return members.find((m) => m.id === id);
   }, [members, id]);
@@ -53,46 +63,26 @@ export function useMemberDetail() {
 
   const isTechnical = currentDivision?.type === 'technical';
 
-  // Contoh data absensi event member
+  // Data absensi dinamis dari daftar event aktif
   const eventsAttendance: MemberEventAttendance[] = useMemo(() => {
-    return [
-      {
-        eventId: 'evt-1',
-        eventName: 'Info Session & Welcoming Party',
-        eventDate: '2026-09-12',
-        isAttended: true,
-        isFinalized: true,
-      },
-      {
-        eventId: 'evt-2',
-        eventName: 'Workshop Git & GitHub',
-        eventDate: '2026-09-26',
-        isAttended: true,
-        isFinalized: true,
-      },
-      {
-        eventId: 'evt-3',
-        eventName: 'Study Jam 1: Web Development Basics',
-        eventDate: '2026-10-10',
-        isAttended: false,
-        isFinalized: true,
-      },
-      {
-        eventId: 'evt-4',
-        eventName: 'Tech Talk: Cloud Architecture',
-        eventDate: '2026-10-24',
-        isAttended: true,
-        isFinalized: true,
-      },
-      {
-        eventId: 'evt-5',
-        eventName: 'Study Jam 2: React State Management',
-        eventDate: '2026-11-07',
-        isAttended: false,
-        isFinalized: false,
-      },
-    ];
-  }, []);
+    if (!currentMember) return [];
+
+    return events
+      .filter((evt) => evt.status === 'active')
+      .map((evt) => {
+        const isAttended = attendances.some(
+          (att) => att.event_id === evt.id && att.member_id === currentMember.id
+        );
+
+        return {
+          eventId: evt.id,
+          eventName: evt.name,
+          eventDate: evt.event_date,
+          isAttended,
+          isFinalized: evt.attendance_finalized,
+        };
+      });
+  }, [events, attendances, currentMember]);
 
   // Data Kas Januari sampai November
   const kasMonths: MemberKasMonth[] = useMemo(() => {
@@ -131,14 +121,16 @@ export function useMemberDetail() {
     };
   }, []);
 
-  // Perhitungan kelulusan sementara
+  // Perhitungan kelulusan sementara (agent.md 7.8)
   const graduationStatus = useMemo(() => {
     const reasons: string[] = [];
 
     // 1. Kas seluruhnya
     const unpaidMonths = kasMonths.filter((m) => !m.isPaid);
     if (unpaidMonths.length > 0) {
-      reasons.push(`Iuran kas belum lunas untuk ${unpaidMonths.length} bulan (${unpaidMonths.map((m) => m.monthName).join(', ')})`);
+      reasons.push(
+        `Iuran kas belum lunas untuk ${unpaidMonths.length} bulan (${unpaidMonths.map((m) => m.monthName).join(', ')})`
+      );
     }
 
     const unpaidFines = kasMonths.filter((m) => m.hasFine && !m.isFinePaid);
@@ -146,13 +138,15 @@ export function useMemberDetail() {
       reasons.push('Terdapat sisa denda keterlambatan kas yang belum dibayar');
     }
 
-    // 2. Absensi
+    // 2. Absensi: Hanya event berstatus attendance_finalized yang dihitung
     const finalizedEvents = eventsAttendance.filter((e) => e.isFinalized);
     const absentCount = finalizedEvents.filter((e) => !e.isAttended).length;
     const maxAbsences = 3;
 
     if (absentCount > maxAbsences && !punishment.isCompleted) {
-      reasons.push(`Jumlah absen (${absentCount}) melebihi batas toleransi (${maxAbsences}) dan punishment belum diselesaikan`);
+      reasons.push(
+        `Jumlah absen (${absentCount}) melebihi batas toleransi (${maxAbsences}) dan punishment belum diselesaikan`
+      );
     }
 
     // 3. Lomba (khusus technical)
@@ -181,4 +175,3 @@ export function useMemberDetail() {
     graduationStatus,
   };
 }
-
