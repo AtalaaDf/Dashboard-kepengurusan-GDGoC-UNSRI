@@ -25,12 +25,79 @@
   transition-duration: 150ms;
 }
 
+@keyframes floatScaleA {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  35% {
+    transform: translate(18px, -22px) scale(1.15);
+  }
+  70% {
+    transform: translate(-14px, 14px) scale(0.92);
+  }
+}
+
+@keyframes floatScaleB {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  40% {
+    transform: translate(-20px, -16px) scale(0.88);
+  }
+  75% {
+    transform: translate(16px, 20px) scale(1.18);
+  }
+}
+
+@keyframes floatScaleC {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  30% {
+    transform: translate(14px, 18px) scale(1.12);
+  }
+  65% {
+    transform: translate(-16px, -12px) scale(0.94);
+  }
+}
+
+@keyframes floatScaleD {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  45% {
+    transform: translate(-14px, 20px) scale(1.2);
+  }
+  80% {
+    transform: translate(14px, -16px) scale(0.9);
+  }
+}
+
+.animate-float-scale-1 {
+  animation: floatScaleA 9s ease-in-out infinite;
+}
+
+.animate-float-scale-2 {
+  animation: floatScaleB 12s ease-in-out infinite;
+}
+
+.animate-float-scale-3 {
+  animation: floatScaleC 10.5s ease-in-out infinite;
+}
+
+.animate-float-scale-4 {
+  animation: floatScaleD 14s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in,
   .animate-dialog-fade,
-  .animate-toast-fade {
+  .animate-toast-fade,
+  .animate-float-scale-1,
+  .animate-float-scale-2,
+  .animate-float-scale-3,
+  .animate-float-scale-4 {
     animation: none !important;
-    opacity: 1 !important;
   }
   .transition-hover {
     transition: none !important;

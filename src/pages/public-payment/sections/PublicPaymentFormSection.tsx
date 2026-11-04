@@ -53,7 +53,7 @@ export const PublicPaymentFormSection: React.FC<PublicPaymentFormSectionProps> =
 }) => {
   if (isSuccess) {
     return (
-      <div className={`w-full max-w-lg bg-white border border-[#1e1e1e]/10 rounded-2xl p-8 flex flex-col items-center text-center gap-4 ${ANIMATIONS.PAGE_FADE_IN}`}>
+      <div className={`w-full max-w-lg bg-white border border-[#1e1e1e]/10 rounded-2xl p-8 flex flex-col items-center text-center gap-4 relative z-10 ${ANIMATIONS.PAGE_FADE_IN}`}>
         <div className="p-3 bg-[#ccf6c5] text-[#34a853] rounded-full">
           <CheckCircleIcon className="w-10 h-10" />
         </div>
@@ -77,7 +77,7 @@ export const PublicPaymentFormSection: React.FC<PublicPaymentFormSectionProps> =
   }
 
   return (
-    <div className={`w-full max-w-lg bg-white border border-[#1e1e1e]/10 rounded-2xl p-6 sm:p-8 ${ANIMATIONS.PAGE_FADE_IN}`}>
+    <div className={`w-full max-w-lg bg-white border border-[#1e1e1e]/10 rounded-2xl p-6 sm:p-8 relative z-10 ${ANIMATIONS.PAGE_FADE_IN}`}>
       <div className="flex flex-col items-center text-center mb-6">
         <img
           src="/logoGDG.png"

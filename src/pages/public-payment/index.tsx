@@ -2,6 +2,7 @@ import React from 'react';
 import { usePublicPayment } from './data/use-public-payment';
 import { PublicPaymentFormSection } from './sections/PublicPaymentFormSection';
 import { PublicPaymentConfirmationModal } from './sections/PublicPaymentConfirmationModal';
+import { FloatingOrnaments } from '@/components/common/FloatingOrnaments';
 import { Footer } from '@/components/layout/Footer';
 
 export const PublicPaymentPage: React.FC = () => {
@@ -33,8 +34,11 @@ export const PublicPaymentPage: React.FC = () => {
   } = usePublicPayment();
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col justify-between bg-white text-[#1e1e1e]">
-      <div className="flex-1 flex items-center justify-center px-4 py-10">
+    <div className="relative min-h-screen w-full flex flex-col justify-between overflow-hidden bg-white text-[#1e1e1e]">
+
+      <FloatingOrnaments variant="overlay" />
+
+      <div className="flex-1 flex items-center justify-center px-4 py-10 relative z-10">
         <PublicPaymentFormSection
           divisions={divisions}
           members={filteredMembers}
@@ -68,8 +72,6 @@ export const PublicPaymentPage: React.FC = () => {
         fineCount={selectedFineMonths.length}
         isSubmitting={isSubmitting}
       />
-
-      <Footer />
     </div>
   );
 };
