@@ -26,6 +26,7 @@ export const MembersPage: React.FC = () => {
     deleteDivision,
     addMember,
     toggleMemberStatus,
+    deleteMember,
     getDivisionById,
   } = useMembers();
 
@@ -57,6 +58,7 @@ export const MembersPage: React.FC = () => {
         onStatusFilterChange={setSelectedStatusFilter}
         isSuperadmin={isSuperadmin}
         onToggleStatus={toggleMemberStatus}
+        onDeleteMember={deleteMember}
         getDivisionById={getDivisionById}
       />
 

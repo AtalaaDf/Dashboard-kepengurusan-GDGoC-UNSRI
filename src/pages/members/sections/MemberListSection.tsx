@@ -1,10 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Division, Member } from '@/types';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/Dialog';
+import { MagnifyingGlassIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 interface MemberListSectionProps {
   members: Member[];
@@ -17,6 +24,7 @@ interface MemberListSectionProps {
   onStatusFilterChange: (value: 'all' | 'active' | 'inactive') => void;
   isSuperadmin: boolean;
   onToggleStatus: (memberId: string) => void;
+  onDeleteMember: (memberId: string) => Promise<boolean>;
   getDivisionById: (id: string) => Division | undefined;
 }
 
@@ -31,8 +39,20 @@ export const MemberListSection: React.FC<MemberListSectionProps> = ({
   onStatusFilterChange,
   isSuperadmin,
   onToggleStatus,
+  onDeleteMember,
   getDivisionById,
 }) => {
+  const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleConfirmDelete = async () => {
+    if (!memberToDelete) return;
+    setIsDeleting(true);
+    await onDeleteMember(memberToDelete.id);
+    setIsDeleting(false);
+    setMemberToDelete(null);
+  };
+
   return (
     <div className="flex flex-col gap-4">
       {/* Filter and Search Bar */}
@@ -124,7 +144,7 @@ export const MemberListSection: React.FC<MemberListSectionProps> = ({
                         </Badge>
                       </td>
                       <td className="py-3.5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end gap-1.5 sm:gap-2">
                           <Link to={`/members/${member.id}`}>
                             <Button variant="outline" size="sm">
                               Detail
@@ -132,14 +152,27 @@ export const MemberListSection: React.FC<MemberListSectionProps> = ({
                           </Link>
 
                           {isSuperadmin && (
-                            <Button
-                              variant={isActive ? 'ghost' : 'secondary'}
-                              size="sm"
-                              onClick={() => onToggleStatus(member.id)}
-                              className={isActive ? 'text-[#ea4335] hover:bg-[#f8d8d8]' : 'text-[#34a853] hover:bg-[#ccf6c5]'}
-                            >
-                              {isActive ? 'Nonaktifkan' : 'Aktifkan'}
-                            </Button>
+                            <>
+                              <Button
+                                variant={isActive ? 'ghost' : 'secondary'}
+                                size="sm"
+                                onClick={() => onToggleStatus(member.id)}
+                                className={isActive ? 'text-[#ea4335] hover:bg-[#f8d8d8]' : 'text-[#34a853] hover:bg-[#ccf6c5]'}
+                              >
+                                {isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                              </Button>
+
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setMemberToDelete(member)}
+                                className="h-8 w-8 text-[#ea4335] hover:bg-[#f8d8d8]"
+                                title="Hapus member permanen"
+                              >
+                                <TrashIcon className="w-4 h-4" />
+                              </Button>
+                            </>
                           )}
                         </div>
                       </td>
@@ -151,7 +184,39 @@ export const MemberListSection: React.FC<MemberListSectionProps> = ({
           </table>
         </div>
       </div>
+
+      {/* Dialog Konfirmasi Hapus Member */}
+      <Dialog open={Boolean(memberToDelete)} onOpenChange={(open) => !open && setMemberToDelete(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Hapus Data Member</DialogTitle>
+            <DialogDescription>
+              Apakah Anda yakin ingin menghapus data member <strong>{memberToDelete?.full_name}</strong>? Tindakan ini akan menghapus riwayat keanggotaan dan catatan terkait dari sistem.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#1e1e1e]/10 mt-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setMemberToDelete(null)}
+              disabled={isDeleting}
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Menghapus...' : 'Ya, Hapus Member'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
-

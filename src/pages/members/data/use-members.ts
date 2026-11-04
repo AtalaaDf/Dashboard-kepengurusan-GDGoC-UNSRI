@@ -206,9 +206,78 @@ export function useMembers() {
     return true;
   };
 
-  // Filter dan Pencarian
+  // Hapus Member
+  const deleteMember = async (memberId: string): Promise<boolean> => {
+    if (!isSuperadmin) {
+      setErrorMessage('Hanya Superadmin yang dapat menghapus member.');
+      return false;
+    }
+
+    try {
+      await supabase.from('members').delete().eq('id', memberId);
+    } catch {
+      // Offline fallback
+    }
+
+    setMembers((prev) => prev.filter((m) => m.id !== memberId));
+
+    // Bersihkan data relasi terkait di localStorage
+    try {
+      const rawAtt = localStorage.getItem('gdgoc_attendances_data');
+      if (rawAtt) {
+        const atts = JSON.parse(rawAtt);
+        localStorage.setItem(
+          'gdgoc_attendances_data',
+          JSON.stringify(atts.filter((a: { member_id: string }) => a.member_id !== memberId))
+        );
+      }
+
+      const rawComps = localStorage.getItem('gdgoc_competitions_data');
+      if (rawComps) {
+        const comps = JSON.parse(rawComps);
+        localStorage.setItem(
+          'gdgoc_competitions_data',
+          JSON.stringify(comps.filter((c: { member_id: string }) => c.member_id !== memberId))
+        );
+      }
+
+      const rawPuns = localStorage.getItem('gdgoc_punishments_data');
+      if (rawPuns) {
+        const puns = JSON.parse(rawPuns);
+        localStorage.setItem(
+          'gdgoc_punishments_data',
+          JSON.stringify(puns.filter((p: { member_id: string }) => p.member_id !== memberId))
+        );
+      }
+
+      const rawSubs = localStorage.getItem('gdgoc_kas_submissions');
+      if (rawSubs) {
+        const subs = JSON.parse(rawSubs);
+        localStorage.setItem(
+          'gdgoc_kas_submissions',
+          JSON.stringify(subs.filter((s: { member_id: string }) => s.member_id !== memberId))
+        );
+      }
+
+      const rawItems = localStorage.getItem('gdgoc_kas_items');
+      if (rawItems) {
+        const items = JSON.parse(rawItems);
+        localStorage.setItem(
+          'gdgoc_kas_items',
+          JSON.stringify(items.filter((i: { member_id: string }) => i.member_id !== memberId))
+        );
+      }
+    } catch {
+      // abaikan error storage
+    }
+
+    setErrorMessage(null);
+    return true;
+  };
+
+  // Filter, Pencarian, dan Sortir Otomatis
   const filteredMembers = useMemo(() => {
-    return members.filter((member) => {
+    const list = members.filter((member) => {
       const matchQuery = member.full_name
         .toLowerCase()
         .includes(searchQuery.toLowerCase().trim());
@@ -221,7 +290,38 @@ export function useMembers() {
 
       return matchQuery && matchDivision && matchStatus;
     });
-  }, [members, searchQuery, selectedDivisionFilter, selectedStatusFilter]);
+
+    const divMap = new Map<string, Division>(divisions.map((d) => [d.id, d]));
+
+    return list.sort((a, b) => {
+      const divA = divMap.get(a.division_id);
+      const divB = divMap.get(b.division_id);
+
+      // 1. Kategori Divisi: non_technical (0) duluan, lalu technical (1), tanpa divisi (2)
+      const catOrder = (d?: Division) => {
+        if (!d) return 2;
+        return d.type === 'non_technical' ? 0 : 1;
+      };
+
+      const catA = catOrder(divA);
+      const catB = catOrder(divB);
+
+      if (catA !== catB) {
+        return catA - catB;
+      }
+
+      // 2. Nama Divisi secara alfabetis (A-Z)
+      const divNameA = divA?.name || '';
+      const divNameB = divB?.name || '';
+      const divComp = divNameA.localeCompare(divNameB, 'id');
+      if (divComp !== 0) {
+        return divComp;
+      }
+
+      // 3. Nama Member secara alfabetis (A-Z)
+      return a.full_name.localeCompare(b.full_name, 'id');
+    });
+  }, [members, divisions, searchQuery, selectedDivisionFilter, selectedStatusFilter]);
 
   const getDivisionById = (divisionId: string): Division | undefined => {
     return divisions.find((d) => d.id === divisionId);
@@ -245,6 +345,7 @@ export function useMembers() {
     deleteDivision,
     addMember,
     toggleMemberStatus,
+    deleteMember,
     getDivisionById,
   };
 }

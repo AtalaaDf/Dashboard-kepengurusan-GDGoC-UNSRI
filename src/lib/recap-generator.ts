@@ -15,12 +15,41 @@ const MONTH_NAMES = [
   'Juli', 'Agustus', 'September', 'Oktober', 'November'
 ];
 
+function sortMembersByDivisionCategory(members: Member[], divisions: Division[]): Member[] {
+  const divMap = new Map<string, Division>(divisions.map((d) => [d.id, d]));
+
+  return [...members].sort((a, b) => {
+    const divA = divMap.get(a.division_id);
+    const divB = divMap.get(b.division_id);
+    const catOrder = (d?: Division) => {
+      if (!d) return 2;
+      return d.type === 'non_technical' ? 0 : 1;
+    };
+
+    const catA = catOrder(divA);
+    const catB = catOrder(divB);
+
+    if (catA !== catB) {
+      return catA - catB;
+    }
+    const divNameA = divA?.name || '';
+    const divNameB = divB?.name || '';
+    const divComp = divNameA.localeCompare(divNameB, 'id');
+    if (divComp !== 0) {
+      return divComp;
+    }
+    return a.full_name.localeCompare(b.full_name, 'id');
+  });
+}
+
 export function downloadAttendanceAndGraduationRecap(): void {
   const rawMembers = localStorage.getItem('gdgoc_members_data');
   const members: Member[] = rawMembers ? JSON.parse(rawMembers) : [];
 
   const rawDivisions = localStorage.getItem('gdgoc_divisions_data');
   const divisions: Division[] = rawDivisions ? JSON.parse(rawDivisions) : [];
+
+  const sortedMembers = sortMembersByDivisionCategory(members, divisions);
 
   const rawEvents = localStorage.getItem('gdgoc_events_data');
   const events: OrganizationEvent[] = rawEvents ? JSON.parse(rawEvents) : [];
@@ -56,7 +85,7 @@ export function downloadAttendanceAndGraduationRecap(): void {
     'Alasan Belum Lulus',
   ];
 
-  const rows = members.map((member) => {
+  const rows = sortedMembers.map((member) => {
     const division = divisions.find((d) => d.id === member.division_id);
     const isTechnical = division?.type === 'technical';
 
@@ -130,6 +159,8 @@ export function downloadCashRecap(): void {
   const rawDivisions = localStorage.getItem('gdgoc_divisions_data');
   const divisions: Division[] = rawDivisions ? JSON.parse(rawDivisions) : [];
 
+  const sortedMembers = sortMembersByDivisionCategory(members, divisions);
+
   const rawSubs = localStorage.getItem('gdgoc_kas_submissions');
   const submissions: KasSubmission[] = rawSubs ? JSON.parse(rawSubs) : [];
   const approvedSubIds = new Set(
@@ -149,7 +180,7 @@ export function downloadCashRecap(): void {
     'Keterangan',
   ];
 
-  const rows = members.map((member) => {
+  const rows = sortedMembers.map((member) => {
     const division = divisions.find((d) => d.id === member.division_id);
     const memberItems = items.filter((i) => i.member_id === member.id && i.is_active);
 
@@ -195,4 +226,3 @@ export function downloadCashRecap(): void {
   const timestamp = new Date().toISOString().split('T')[0];
   exportToSpreadsheet(`rekap_kas_organisasi_gdgoc_${timestamp}.csv`, headers, rows);
 }
-
