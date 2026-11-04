@@ -53,7 +53,7 @@ export function downloadAttendanceAndGraduationRecap(): void {
 
   const rawEvents = localStorage.getItem('gdgoc_events_data');
   const events: OrganizationEvent[] = rawEvents ? JSON.parse(rawEvents) : [];
-  const finalizedEvents = events.filter((e) => e.attendance_finalized && e.status === 'active');
+  const finalizedEvents = events.filter((e) => e.attendance_finalized);
 
   const rawAttendances = localStorage.getItem('gdgoc_attendances_data');
   const attendances: Attendance[] = rawAttendances ? JSON.parse(rawAttendances) : [];

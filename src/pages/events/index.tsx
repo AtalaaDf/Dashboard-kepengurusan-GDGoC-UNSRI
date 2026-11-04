@@ -22,7 +22,7 @@ export const EventsPage: React.FC = () => {
     canManageEvents,
     canRecordAttendance,
     addEvent,
-    cancelEvent,
+    deleteEvent,
     saveAttendance,
     getEventPresentMemberIds,
   } = useEvents();
@@ -60,7 +60,7 @@ export const EventsPage: React.FC = () => {
         canRecordAttendance={canRecordAttendance}
         canManageEvents={canManageEvents}
         onOpenAttendance={handleOpenAttendance}
-        onCancelEvent={cancelEvent}
+        onDeleteEvent={deleteEvent}
       />
 
       <EventFormModalSection

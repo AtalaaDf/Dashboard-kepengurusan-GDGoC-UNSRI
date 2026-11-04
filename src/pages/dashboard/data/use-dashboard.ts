@@ -35,10 +35,10 @@ export function useDashboard() {
     // 2. Data Divisi
     const divisions: Division[] = safeParse('gdgoc_divisions_data', []);
 
-    // 3. Data Event Terlaksana (absensi final & status active)
+    // 3. Data Event Terlaksana (absensi final)
     const events: OrganizationEvent[] = safeParse('gdgoc_events_data', []);
     const completedEventsCount = events.filter(
-      (e) => e.attendance_finalized && e.status === 'active'
+      (e) => e.attendance_finalized
     ).length;
 
     // 4. Saldo Kas (pemasukan approved dikurangi pengeluaran)

@@ -102,8 +102,8 @@ export const ExpenseModalSection: React.FC<ExpenseModalSectionProps> = ({
               disabled={isSubmitting}
               className="min-h-[40px] px-3.5 py-2.5 rounded-lg border border-[#1e1e1e]/20 bg-white text-sm text-[#1e1e1e] outline-none focus:ring-2 focus:ring-[#4285f4]/30"
             >
-              <option value="expense">Pengeluaran (Mengurangi Kas)</option>
-              <option value="income">Pemasukan (Sponsor / Hibah / Donasi - Menambah Kas)</option>
+              <option value="expense">Pengeluaran</option>
+              <option value="income">Pemasukan</option>
             </select>
           </div>
 
@@ -135,7 +135,7 @@ export const ExpenseModalSection: React.FC<ExpenseModalSectionProps> = ({
               id="expense-desc"
               placeholder={
                 isIncome
-                  ? 'Contoh: Sponsorship Google Developers / Hibah Dies Natalis'
+                  ? 'Contoh: Sponsorship Google Developers'
                   : 'Contoh: Konsumsi workshop dan sewa proyektor'
               }
               value={description}

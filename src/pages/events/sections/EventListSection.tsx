@@ -1,15 +1,22 @@
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import type { OrganizationEvent, TrackerTask } from '@/types';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/Dialog';
 import { formatDate } from '@/lib/formatters';
 import {
   MagnifyingGlassIcon,
   CalendarDaysIcon,
   CheckBadgeIcon,
-  XCircleIcon,
+  TrashIcon,
   ClipboardDocumentCheckIcon,
 } from '@heroicons/react/24/outline';
 
@@ -24,7 +31,7 @@ interface EventListSectionProps {
   canRecordAttendance: boolean;
   canManageEvents: boolean;
   onOpenAttendance: (event: OrganizationEvent) => void;
-  onCancelEvent: (eventId: string) => void;
+  onDeleteEvent: (eventId: string) => Promise<boolean>;
 }
 
 export const EventListSection: React.FC<EventListSectionProps> = ({
@@ -38,8 +45,11 @@ export const EventListSection: React.FC<EventListSectionProps> = ({
   canRecordAttendance,
   canManageEvents,
   onOpenAttendance,
-  onCancelEvent,
+  onDeleteEvent,
 }) => {
+  const [eventToDelete, setEventToDelete] = useState<OrganizationEvent | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // Hitung persentase tugas tracker per event
   const allTasks: TrackerTask[] = useMemo(() => {
     try {
@@ -75,6 +85,14 @@ export const EventListSection: React.FC<EventListSectionProps> = ({
     }
   };
 
+  const handleConfirmDelete = async () => {
+    if (!eventToDelete) return;
+    setIsDeleting(true);
+    await onDeleteEvent(eventToDelete.id);
+    setIsDeleting(false);
+    setEventToDelete(null);
+  };
+
   return (
     <div className="flex flex-col gap-5">
       {/* Search and Filters */}
@@ -107,8 +125,8 @@ export const EventListSection: React.FC<EventListSectionProps> = ({
             className="min-h-[40px] px-3 py-2 rounded-lg border border-[#1e1e1e]/20 bg-white text-sm text-[#1e1e1e] outline-none focus:ring-2 focus:ring-[#4285f4]/30"
           >
             <option value="all">Semua Status</option>
-            <option value="active">Aktif</option>
-            <option value="cancelled">Dibatalkan</option>
+            <option value="finalized">Absensi Final</option>
+            <option value="unfinalized">Belum Dicek</option>
           </select>
         </div>
       </div>
@@ -121,7 +139,6 @@ export const EventListSection: React.FC<EventListSectionProps> = ({
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {events.map((evt) => {
-            const isCancelled = evt.status === 'cancelled';
             const isFinalized = evt.attendance_finalized;
             const progress = getEventProgress(evt.id);
 
@@ -135,12 +152,8 @@ export const EventListSection: React.FC<EventListSectionProps> = ({
                     <Badge variant={evt.type === 'online' ? 'info' : 'warning'}>
                       {evt.type === 'online' ? 'Online' : 'Offline'}
                     </Badge>
-                    <Badge variant={isCancelled ? 'danger' : isFinalized ? 'success' : 'neutral'}>
-                      {isCancelled
-                        ? 'Dibatalkan'
-                        : isFinalized
-                        ? 'Absensi Final'
-                        : 'Belum dicek'}
+                    <Badge variant={isFinalized ? 'success' : 'neutral'}>
+                      {isFinalized ? 'Absensi Final' : 'Belum dicek'}
                     </Badge>
                   </div>
 
@@ -154,18 +167,16 @@ export const EventListSection: React.FC<EventListSectionProps> = ({
                       <span>{formatDate(evt.event_date)}</span>
                     </div>
 
-                    {!isCancelled && (
-                      <span className="font-medium text-[#34a853]">
-                        {progress}% tracker selesai
-                      </span>
-                    )}
+                    <span className="font-medium text-[#34a853]">
+                      {progress}% tracker selesai
+                    </span>
                   </div>
                 </div>
 
                 {/* Aksi Event */}
                 <div className="pt-3 border-t border-[#1e1e1e]/10 flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    {canRecordAttendance && !isCancelled && (
+                    {canRecordAttendance && (
                       <Button
                         type="button"
                         variant="outline"
@@ -174,36 +185,33 @@ export const EventListSection: React.FC<EventListSectionProps> = ({
                         className="flex items-center gap-1.5"
                       >
                         <CheckBadgeIcon className="w-4 h-4 text-[#4285f4]" />
-                        <span>{isFinalized ? 'Absensi' : 'Absensi'}</span>
+                        <span>Absensi</span>
                       </Button>
                     )}
 
-                    {!isCancelled && (
-                      <Link to={`/events/${evt.id}/tracker`}>
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          size="sm"
-                          className="flex items-center gap-1.5"
-                        >
-                          <ClipboardDocumentCheckIcon className="w-4 h-4 text-[#1e1e1e]" />
-                          <span>Tracker</span>
-                        </Button>
-                      </Link>
-                    )}
+                    <Link to={`/events/${evt.id}/tracker`}>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="flex items-center gap-1.5"
+                      >
+                        <ClipboardDocumentCheckIcon className="w-4 h-4 text-[#1e1e1e]" />
+                        <span>Tracker</span>
+                      </Button>
+                    </Link>
                   </div>
 
-                  {canManageEvents && !isCancelled && (
-                    <Button
+                  {canManageEvents && (
+                    <button
                       type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onCancelEvent(evt.id)}
-                      className="text-[#ea4335] hover:bg-[#f8d8d8] ml-auto flex items-center gap-1"
+                      onClick={() => setEventToDelete(evt)}
+                      className="ml-auto text-xs text-[#ea4335] hover:bg-[#f8d8d8] px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition-colors shrink-0 outline-none focus:ring-2 focus:ring-[#ea4335]/30 cursor-pointer"
+                      title="Hapus event permanen"
                     >
-                      <XCircleIcon className="w-4 h-4" />
-                      <span>Batalkan</span>
-                    </Button>
+                      <TrashIcon className="w-3.5 h-3.5 shrink-0 stroke-[#ea4335] text-[#ea4335]" />
+                      <span>Hapus</span>
+                    </button>
                   )}
                 </div>
               </div>
@@ -211,6 +219,39 @@ export const EventListSection: React.FC<EventListSectionProps> = ({
           })}
         </div>
       )}
+
+      {/* Dialog Konfirmasi Hapus Event */}
+      <Dialog open={Boolean(eventToDelete)} onOpenChange={(open) => !open && setEventToDelete(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Hapus Event Organisasi</DialogTitle>
+            <DialogDescription>
+              Apakah Anda yakin ingin menghapus event <strong>{eventToDelete?.name}</strong>? Seluruh lembar kerja tracker divisi dan riwayat presensi terkait event ini akan dihapus permanen dari sistem.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#1e1e1e]/10 mt-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setEventToDelete(null)}
+              disabled={isDeleting}
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Menghapus...' : 'Ya, Hapus Event'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

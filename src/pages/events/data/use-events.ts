@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import type { OrganizationEvent, Attendance } from '@/types';
+import type { OrganizationEvent, Attendance, TrackerDivision, TrackerGroup, TrackerTask } from '@/types';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/data/auth/auth-context';
 
@@ -147,25 +147,52 @@ export function useEvents() {
     return true;
   };
 
-  // Batalkan Event (event yang sudah punya absensi dibatalkan, bukan dihapus sembarangan sesuai agent.md Bab 10 point 2)
-  const cancelEvent = async (eventId: string): Promise<boolean> => {
+  // Hapus Event Permanen beserta data relasi (absensi & tracker)
+  const deleteEvent = async (eventId: string): Promise<boolean> => {
     if (!canManageEvents) {
-      setErrorMessage('Hanya Superadmin dan PO yang dapat membatalkan event.');
+      setErrorMessage('Hanya Superadmin dan PO yang dapat menghapus event.');
       return false;
     }
 
     try {
-      await supabase
-        .from('events')
-        .update({ status: 'cancelled' })
-        .eq('id', eventId);
+      await supabase.from('events').delete().eq('id', eventId);
+      await supabase.from('attendances').delete().eq('event_id', eventId);
     } catch {
       // Offline fallback
     }
 
-    setEvents((prev) =>
-      prev.map((e) => (e.id === eventId ? { ...e, status: 'cancelled' } : e))
-    );
+    // 1. Hapus event dari state
+    setEvents((prev) => prev.filter((e) => e.id !== eventId));
+
+    // 2. Hapus data presensi event terkait
+    setAttendances((prev) => prev.filter((a) => a.event_id !== eventId));
+
+    // 3. Bersihkan data tracker divisi, grup, dan tugas terkait event ini di localStorage
+    try {
+      const rawDivs = localStorage.getItem('gdgoc_tracker_divisions');
+      const allDivs: TrackerDivision[] = rawDivs ? JSON.parse(rawDivs) : [];
+      const eventDivIds = new Set(
+        allDivs.filter((d) => d.event_id === eventId).map((d) => d.id)
+      );
+      const remainingDivs = allDivs.filter((d) => d.event_id !== eventId);
+      localStorage.setItem('gdgoc_tracker_divisions', JSON.stringify(remainingDivs));
+
+      const rawGrps = localStorage.getItem('gdgoc_tracker_groups');
+      const allGrps: TrackerGroup[] = rawGrps ? JSON.parse(rawGrps) : [];
+      const eventGrpIds = new Set(
+        allGrps.filter((g) => eventDivIds.has(g.tracker_division_id)).map((g) => g.id)
+      );
+      const remainingGrps = allGrps.filter((g) => !eventDivIds.has(g.tracker_division_id));
+      localStorage.setItem('gdgoc_tracker_groups', JSON.stringify(remainingGrps));
+
+      const rawTasks = localStorage.getItem('gdgoc_tracker_tasks');
+      const allTasks: TrackerTask[] = rawTasks ? JSON.parse(rawTasks) : [];
+      const remainingTasks = allTasks.filter((t) => !eventGrpIds.has(t.group_id));
+      localStorage.setItem('gdgoc_tracker_tasks', JSON.stringify(remainingTasks));
+    } catch {
+      // abaikan kesalahan storage
+    }
+
     setErrorMessage(null);
     return true;
   };
@@ -240,7 +267,9 @@ export function useEvents() {
       const matchType =
         selectedTypeFilter === 'all' || evt.type === selectedTypeFilter;
       const matchStatus =
-        selectedStatusFilter === 'all' || evt.status === selectedStatusFilter;
+        selectedStatusFilter === 'all' ||
+        (selectedStatusFilter === 'finalized' && evt.attendance_finalized) ||
+        (selectedStatusFilter === 'unfinalized' && !evt.attendance_finalized);
 
       return matchQuery && matchType && matchStatus;
     });
@@ -249,7 +278,7 @@ export function useEvents() {
   return {
     events: filteredEvents,
     totalEventsCount: events.length,
-    finalizedEventsCount: events.filter((e) => e.attendance_finalized && e.status === 'active').length,
+    finalizedEventsCount: events.filter((e) => e.attendance_finalized).length,
     searchQuery,
     setSearchQuery,
     selectedTypeFilter,
@@ -261,7 +290,7 @@ export function useEvents() {
     canManageEvents,
     canRecordAttendance,
     addEvent,
-    cancelEvent,
+    deleteEvent,
     saveAttendance,
     getEventPresentMemberIds,
   };
