@@ -99,8 +99,19 @@ export function useMemberDetail() {
         const { data: evtData } = await supabase.from('events').select('*');
         if (evtData) setEvents(evtData as OrganizationEvent[]);
 
-        const { data: attData } = await supabase.from('attendances').select('*');
-        if (attData) setAttendances(attData as Attendance[]);
+        const { data: attData, error: attErr } = await supabase.from('attendances').select('*');
+        if (!attErr && attData && attData.length > 0) {
+          setAttendances(attData as Attendance[]);
+          localStorage.setItem('gdgoc_attendances_data', JSON.stringify(attData));
+        } else if (!attErr && attData) {
+          const savedAtts = localStorage.getItem('gdgoc_attendances_data');
+          if (savedAtts) {
+            const parsed = JSON.parse(savedAtts);
+            if (parsed.length > 0) {
+              setAttendances(parsed);
+            }
+          }
+        }
       } catch {
         // Fallback local
       }
@@ -215,19 +226,32 @@ export function useMemberDetail() {
       return false;
     }
 
-    const newComp: CompetitionEntry = {
-      id: `comp-${Date.now()}`,
+    const compPayload = {
       member_id: currentMember.id,
       competition_name: name.trim(),
       organizer: organizer.trim(),
-      created_at: new Date().toISOString(),
     };
 
+    let insertedId = `comp-${Date.now()}`;
     try {
-      await supabase.from('competition_entries').insert([newComp]);
+      const { data, error } = await supabase
+        .from('competition_entries')
+        .insert([compPayload])
+        .select()
+        .single();
+
+      if (!error && data) {
+        insertedId = data.id;
+      }
     } catch {
       // Offline fallback
     }
+
+    const newComp: CompetitionEntry = {
+      id: insertedId,
+      ...compPayload,
+      created_at: new Date().toISOString(),
+    };
 
     setCompetitions((prev) => [newComp, ...prev]);
     setActionError(null);
@@ -287,20 +311,35 @@ export function useMemberDetail() {
         // Offline fallback
       }
     } else {
+      let insertedId = `pun-${Date.now()}`;
+      try {
+        const { data, error } = await supabase
+          .from('punishments')
+          .insert([
+            {
+              member_id: currentMember.id,
+              is_completed: true,
+              completed_at: new Date().toISOString(),
+            },
+          ])
+          .select()
+          .single();
+
+        if (!error && data) {
+          insertedId = data.id;
+        }
+      } catch {
+        // Offline fallback
+      }
+
       const newPun: Punishment = {
-        id: `pun-${Date.now()}`,
+        id: insertedId,
         member_id: currentMember.id,
         is_completed: true,
         completed_at: new Date().toISOString(),
       };
 
       setPunishments((prev) => [...prev, newPun]);
-
-      try {
-        await supabase.from('punishments').insert([newPun]);
-      } catch {
-        // Offline fallback
-      }
     }
 
     setActionError(null);

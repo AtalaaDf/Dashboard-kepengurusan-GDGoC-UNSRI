@@ -152,41 +152,58 @@ export function useEvents() {
       return false;
     }
 
-    // Buat daftar kehadiran baru untuk event ini
-    const newEventAttendances: Attendance[] = presentMemberIds.map((mId) => ({
+    // 1. Buat daftar kehadiran lokal sementara
+    const localAttendances: Attendance[] = presentMemberIds.map((mId) => ({
       id: `att-${eventId}-${mId}`,
       event_id: eventId,
       member_id: mId,
       recorded_by_role: role || 'admin',
     }));
 
-    // Perbarui state attendances: hapus yang lama untuk event ini, masukkan yang baru
+    // Simpan ke state dan localStorage segera
     setAttendances((prev) => {
       const filtered = prev.filter((a) => a.event_id !== eventId);
-      return [...filtered, ...newEventAttendances];
+      const updated = [...filtered, ...localAttendances];
+      localStorage.setItem(STORAGE_KEY_ATTENDANCES, JSON.stringify(updated));
+      return updated;
     });
 
-    // Perbarui status finalized event
-    if (markAsFinal) {
-      setEvents((prev) =>
-        prev.map((e) =>
-          e.id === eventId ? { ...e, attendance_finalized: true } : e
-        )
+    setEvents((prev) => {
+      const updated = prev.map((e) =>
+        e.id === eventId ? { ...e, attendance_finalized: markAsFinal } : e
       );
-    }
-
+      localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(updated));
+      return updated;
+    });
     try {
-      // Sinkronkan ke Supabase jika aktif
       await supabase.from('attendances').delete().eq('event_id', eventId);
-      if (newEventAttendances.length > 0) {
-        await supabase.from('attendances').insert(newEventAttendances);
+
+      if (presentMemberIds.length > 0) {
+        const dbPayload = presentMemberIds.map((mId) => ({
+          event_id: eventId,
+          member_id: mId,
+          recorded_by_role: role || 'admin',
+        }));
+
+        const { data: insertedData, error: insErr } = await supabase
+          .from('attendances')
+          .insert(dbPayload)
+          .select();
+
+        if (!insErr && insertedData && insertedData.length > 0) {
+          setAttendances((prev) => {
+            const filtered = prev.filter((a) => a.event_id !== eventId);
+            const updated = [...filtered, ...(insertedData as Attendance[])];
+            localStorage.setItem(STORAGE_KEY_ATTENDANCES, JSON.stringify(updated));
+            return updated;
+          });
+        }
       }
-      if (markAsFinal) {
-        await supabase
-          .from('events')
-          .update({ attendance_finalized: true })
-          .eq('id', eventId);
-      }
+
+      await supabase
+        .from('events')
+        .update({ attendance_finalized: markAsFinal })
+        .eq('id', eventId);
     } catch {
       // Offline fallback
     }
