@@ -1,9 +1,10 @@
 import React from 'react';
 import { Button } from '@/components/ui/Button';
 import { formatCurrency } from '@/lib/formatters';
-import { PlusIcon, BanknotesIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, BanknotesIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import { cn } from '@/lib/utils';
 import { ANIMATIONS } from '@/lib/animations';
+import { downloadCashRecap } from '@/lib/recap-generator';
 
 interface CashHeaderSectionProps {
   balance: number;
@@ -32,9 +33,9 @@ export const CashHeaderSection: React.FC<CashHeaderSectionProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-4 self-start sm:self-auto">
+        <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
           {/* Kartu Ringkasan Saldo Cepat */}
-          <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-[#34a853]/20 bg-[#ccf6c5]/40">
+          <div className="flex items-center gap-3 px-4 py-2 rounded-xl border border-[#34a853]/20 bg-[#ccf6c5]/40">
             <BanknotesIcon className="w-5 h-5 text-[#34a853]" />
             <div className="flex flex-col">
               <span className="text-[11px] font-medium text-[#1e1e1e]/60">Total Saldo Kas</span>
@@ -45,15 +46,28 @@ export const CashHeaderSection: React.FC<CashHeaderSectionProps> = ({
           </div>
 
           {canReview && (
-            <Button
-              type="button"
-              variant="default"
-              onClick={onOpenExpenseModal}
-              className="flex items-center gap-1.5"
-            >
-              <PlusIcon className="w-4 h-4" />
-              <span>Catat Pengeluaran</span>
-            </Button>
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={downloadCashRecap}
+                className="flex items-center gap-1.5 text-xs"
+                title="Unduh rekap kas organisasi CSV"
+              >
+                <ArrowDownTrayIcon className="w-4 h-4 text-[#4285f4]" />
+                <span>Unduh Rekap</span>
+              </Button>
+
+              <Button
+                type="button"
+                variant="default"
+                onClick={onOpenExpenseModal}
+                className="flex items-center gap-1.5 text-xs"
+              >
+                <PlusIcon className="w-4 h-4" />
+                <span>Catat Pengeluaran</span>
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -96,4 +110,3 @@ export const CashHeaderSection: React.FC<CashHeaderSectionProps> = ({
     </div>
   );
 };
-

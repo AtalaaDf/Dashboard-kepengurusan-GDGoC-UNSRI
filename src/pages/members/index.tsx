@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAuth } from '@/data/auth/auth-context';
 import { useMembers } from './data/use-members';
 import { MemberHeaderSection } from './sections/MemberHeaderSection';
 import { MemberListSection } from './sections/MemberListSection';
@@ -28,6 +29,9 @@ export const MembersPage: React.FC = () => {
     getDivisionById,
   } = useMembers();
 
+  const { role } = useAuth();
+  const canDownloadRecap = role === 'superadmin' || role === 'admin';
+
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
   const [isManageDivisionsOpen, setIsManageDivisionsOpen] = useState(false);
 
@@ -35,6 +39,7 @@ export const MembersPage: React.FC = () => {
     <div className={`flex flex-col gap-6 ${ANIMATIONS.PAGE_FADE_IN}`}>
       <MemberHeaderSection
         isSuperadmin={isSuperadmin}
+        canDownloadRecap={canDownloadRecap}
         onOpenAddMember={() => setIsAddMemberOpen(true)}
         onOpenManageDivisions={() => setIsManageDivisionsOpen(true)}
         totalMembersCount={totalMembersCount}

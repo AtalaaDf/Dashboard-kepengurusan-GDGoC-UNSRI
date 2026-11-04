@@ -1,9 +1,11 @@
 import React from 'react';
 import { Button } from '@/components/ui/Button';
-import { PlusIcon, FolderIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, FolderIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
+import { downloadAttendanceAndGraduationRecap } from '@/lib/recap-generator';
 
 interface MemberHeaderSectionProps {
   isSuperadmin: boolean;
+  canDownloadRecap: boolean;
   onOpenAddMember: () => void;
   onOpenManageDivisions: () => void;
   totalMembersCount: number;
@@ -12,6 +14,7 @@ interface MemberHeaderSectionProps {
 
 export const MemberHeaderSection: React.FC<MemberHeaderSectionProps> = ({
   isSuperadmin,
+  canDownloadRecap,
   onOpenAddMember,
   onOpenManageDivisions,
   totalMembersCount,
@@ -26,30 +29,44 @@ export const MemberHeaderSection: React.FC<MemberHeaderSectionProps> = ({
         </p>
       </div>
 
-      {isSuperadmin && (
-        <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2.5">
+        {canDownloadRecap && (
           <Button
             type="button"
             variant="outline"
-            onClick={onOpenManageDivisions}
-            className="flex items-center gap-2"
+            onClick={downloadAttendanceAndGraduationRecap}
+            className="flex items-center gap-1.5 text-xs"
+            title="Unduh rekap absensi dan kelulusan CSV"
           >
-            <FolderIcon className="w-4 h-4" />
-            <span>Kelola Divisi</span>
+            <ArrowDownTrayIcon className="w-4 h-4 text-[#4285f4]" />
+            <span>Unduh Rekap</span>
           </Button>
+        )}
 
-          <Button
-            type="button"
-            variant="default"
-            onClick={onOpenAddMember}
-            className="flex items-center gap-2"
-          >
-            <PlusIcon className="w-4 h-4" />
-            <span>Tambah Member</span>
-          </Button>
-        </div>
-      )}
+        {isSuperadmin && (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onOpenManageDivisions}
+              className="flex items-center gap-1.5 text-xs"
+            >
+              <FolderIcon className="w-4 h-4" />
+              <span>Kelola Divisi</span>
+            </Button>
+
+            <Button
+              type="button"
+              variant="default"
+              onClick={onOpenAddMember}
+              className="flex items-center gap-1.5 text-xs"
+            >
+              <PlusIcon className="w-4 h-4" />
+              <span>Tambah Member</span>
+            </Button>
+          </>
+        )}
+      </div>
     </div>
   );
 };
-
