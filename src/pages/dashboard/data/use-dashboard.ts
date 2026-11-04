@@ -19,32 +19,36 @@ export function useDashboard() {
   const canReviewCash = role === 'superadmin' || role === 'executive';
 
   const metrics: DashboardMetrics = useMemo(() => {
+    const safeParse = <T>(key: string, fallback: T): T => {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : fallback;
+      } catch {
+        return fallback;
+      }
+    };
+
     // 1. Data Member
-    const rawMembers = localStorage.getItem('gdgoc_members_data');
-    const members: Member[] = rawMembers ? JSON.parse(rawMembers) : [];
+    const members: Member[] = safeParse('gdgoc_members_data', []);
     const activeMembersCount = members.filter((m) => m.status === 'active').length;
 
     // 2. Data Divisi
-    const rawDivisions = localStorage.getItem('gdgoc_divisions_data');
-    const divisions: Division[] = rawDivisions ? JSON.parse(rawDivisions) : [];
+    const divisions: Division[] = safeParse('gdgoc_divisions_data', []);
 
     // 3. Data Event Terlaksana (absensi final & status active)
-    const rawEvents = localStorage.getItem('gdgoc_events_data');
-    const events: OrganizationEvent[] = rawEvents ? JSON.parse(rawEvents) : [];
+    const events: OrganizationEvent[] = safeParse('gdgoc_events_data', []);
     const completedEventsCount = events.filter(
       (e) => e.attendance_finalized && e.status === 'active'
     ).length;
 
     // 4. Saldo Kas (pemasukan approved dikurangi pengeluaran)
-    const rawSubs = localStorage.getItem('gdgoc_kas_submissions');
-    const submissions: KasSubmission[] = rawSubs ? JSON.parse(rawSubs) : [];
+    const submissions: KasSubmission[] = safeParse('gdgoc_kas_submissions', []);
     const totalApproved = submissions
       .filter((s) => s.status === 'approved')
       .reduce((sum, s) => sum + s.total_amount, 0);
     const pendingCashCount = submissions.filter((s) => s.status === 'pending').length;
 
-    const rawExpenses = localStorage.getItem('gdgoc_kas_expenses');
-    const expenses: KasExpense[] = rawExpenses ? JSON.parse(rawExpenses) : [];
+    const expenses: KasExpense[] = safeParse('gdgoc_kas_expenses', []);
     const totalExpense = expenses.reduce((sum, e) => sum + e.amount, 0);
 
     const balance = totalApproved - totalExpense;

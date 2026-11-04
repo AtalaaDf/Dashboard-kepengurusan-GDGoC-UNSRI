@@ -139,8 +139,8 @@ export const Sidebar: React.FC = () => {
         <button
           type="button"
           onClick={() => setIsOpenMobile(!isOpenMobile)}
-          className="p-2 rounded-lg bg-white border border-[#1e1e1e]/10 shadow-none text-[#1e1e1e]"
-          aria-label="Buka Navigasi"
+          className="p-2.5 rounded-lg bg-white border border-[#1e1e1e]/10 shadow-none text-[#1e1e1e] hover:bg-[#f0f0f0] transition-colors"
+          aria-label={isOpenMobile ? 'Tutup Navigasi' : 'Buka Navigasi'}
         >
           {isOpenMobile ? (
             <XMarkIcon className="w-6 h-6" />
@@ -150,23 +150,18 @@ export const Sidebar: React.FC = () => {
         </button>
       </div>
 
-      {/* Mobile Drawer Overlay */}
+      {/* Mobile Drawer Overlay & Content (Fade only per desain.md) */}
       {isOpenMobile && (
-        <div
-          className="lg:hidden fixed inset-0 z-40 bg-black/30 animate-dialog-fade"
-          onClick={() => setIsOpenMobile(false)}
-        />
+        <>
+          <div
+            className="lg:hidden fixed inset-0 z-40 bg-black/30 animate-dialog-fade"
+            onClick={() => setIsOpenMobile(false)}
+          />
+          <div className="lg:hidden fixed inset-y-0 left-0 z-40 w-64 animate-dialog-fade">
+            {sidebarContent}
+          </div>
+        </>
       )}
-
-      {/* Mobile Drawer */}
-      <div
-        className={cn(
-          'lg:hidden fixed inset-y-0 left-0 z-40 w-64 transform transition-transform duration-200 ease-in-out',
-          isOpenMobile ? 'translate-x-0' : '-translate-x-full'
-        )}
-      >
-        {sidebarContent}
-      </div>
 
       {/* Desktop Persistent Sidebar */}
       <aside className="hidden lg:block w-60 shrink-0 h-screen sticky top-0">

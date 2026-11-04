@@ -42,29 +42,37 @@ export const EventListSection: React.FC<EventListSectionProps> = ({
 }) => {
   // Hitung persentase tugas tracker per event
   const allTasks: TrackerTask[] = useMemo(() => {
-    const raw = localStorage.getItem('gdgoc_tracker_tasks');
-    return raw ? JSON.parse(raw) : [];
+    try {
+      const raw = localStorage.getItem('gdgoc_tracker_tasks');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
   }, []);
 
   const getEventProgress = (eventId: string): number => {
-    const rawDivs = localStorage.getItem('gdgoc_tracker_divisions');
-    const divs = rawDivs ? JSON.parse(rawDivs) : [];
-    const eventDivIds = new Set(
-      divs.filter((d: { event_id: string }) => d.event_id === eventId).map((d: { id: string }) => d.id)
-    );
+    try {
+      const rawDivs = localStorage.getItem('gdgoc_tracker_divisions');
+      const divs = rawDivs ? JSON.parse(rawDivs) : [];
+      const eventDivIds = new Set(
+        divs.filter((d: { event_id: string }) => d.event_id === eventId).map((d: { id: string }) => d.id)
+      );
 
-    const rawGrps = localStorage.getItem('gdgoc_tracker_groups');
-    const grps = rawGrps ? JSON.parse(rawGrps) : [];
-    const eventGrpIds = new Set(
-      grps
-        .filter((g: { tracker_division_id: string }) => eventDivIds.has(g.tracker_division_id))
-        .map((g: { id: string }) => g.id)
-    );
+      const rawGrps = localStorage.getItem('gdgoc_tracker_groups');
+      const grps = rawGrps ? JSON.parse(rawGrps) : [];
+      const eventGrpIds = new Set(
+        grps
+          .filter((g: { tracker_division_id: string }) => eventDivIds.has(g.tracker_division_id))
+          .map((g: { id: string }) => g.id)
+      );
 
-    const eventTasks = allTasks.filter((t) => eventGrpIds.has(t.group_id) && t.status !== 'cancelled');
-    if (eventTasks.length === 0) return 0;
-    const doneTasks = eventTasks.filter((t) => t.status === 'done');
-    return Math.round((doneTasks.length / eventTasks.length) * 100);
+      const eventTasks = allTasks.filter((t) => eventGrpIds.has(t.group_id) && t.status !== 'cancelled');
+      if (eventTasks.length === 0) return 0;
+      const doneTasks = eventTasks.filter((t) => t.status === 'done');
+      return Math.round((doneTasks.length / eventTasks.length) * 100);
+    } catch {
+      return 0;
+    }
   };
 
   return (

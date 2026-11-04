@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/data/auth/auth-context';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { LoginPage } from '@/pages/login';
 import { DashboardPage } from '@/pages/dashboard';
 import { MembersPage } from '@/pages/members';
@@ -42,9 +43,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
 
 export const AppRouter: React.FC = () => {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <Routes>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AuthProvider>
+          <Routes>
           {/* Rute Publik */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/bayar" element={<PublicPaymentPage />} />
@@ -108,6 +110,7 @@ export const AppRouter: React.FC = () => {
         </Routes>
       </AuthProvider>
     </BrowserRouter>
+  </ErrorBoundary>
   );
 };
 

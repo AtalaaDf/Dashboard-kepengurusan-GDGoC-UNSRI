@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import type {
   OrganizationEvent,
@@ -14,32 +14,17 @@ const STORAGE_KEY_TDIVISIONS = 'gdgoc_tracker_divisions';
 const STORAGE_KEY_TGROUPS = 'gdgoc_tracker_groups';
 const STORAGE_KEY_TTASKS = 'gdgoc_tracker_tasks';
 
-export function useEventTracker() {
-  const { id: eventId } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const { role } = useAuth();
-  const canEditTracker = role === 'superadmin' || role === 'po';
+function loadInitialTrackerState(eventId?: string, currentEvent?: OrganizationEvent) {
+  if (!currentEvent || !eventId) {
+    return {
+      divisions: [] as TrackerDivision[],
+      groups: [] as TrackerGroup[],
+      tasks: [] as TrackerTask[],
+      activeDivisionId: '',
+    };
+  }
 
-  const [events] = useState<OrganizationEvent[]>(() => {
-    const raw = localStorage.getItem('gdgoc_events_data');
-    return raw ? JSON.parse(raw) : [];
-  });
-
-  const currentEvent = useMemo(() => {
-    return events.find((e) => e.id === eventId);
-  }, [events, eventId]);
-
-  const [divisions, setDivisions] = useState<TrackerDivision[]>([]);
-  const [groups, setGroups] = useState<TrackerGroup[]>([]);
-  const [tasks, setTasks] = useState<TrackerTask[]>([]);
-  const [activeDivisionId, setActiveDivisionId] = useState<string>('');
-  const [stageFilter, setStageFilter] = useState<'all' | TaskStage>('all');
-  const [isSaved, setIsSaved] = useState(false);
-
-  // Inisialisasi atau load data tracker untuk event ini
-  useEffect(() => {
-    if (!currentEvent || !eventId) return;
-
+  try {
     const rawDivs = localStorage.getItem(STORAGE_KEY_TDIVISIONS);
     const allDivs: TrackerDivision[] = rawDivs ? JSON.parse(rawDivs) : [];
     const eventDivs = allDivs.filter((d) => d.event_id === eventId);
@@ -51,7 +36,6 @@ export function useEventTracker() {
     const allTasks: TrackerTask[] = rawTasks ? JSON.parse(rawTasks) : [];
 
     if (eventDivs.length === 0) {
-      // Inisialisasi dari template bawaan
       const instantiated = instantiateTrackerFromTemplate(eventId, currentEvent.type);
 
       const updatedDivs = [...allDivs, ...instantiated.divisions];
@@ -62,26 +46,61 @@ export function useEventTracker() {
       localStorage.setItem(STORAGE_KEY_TGROUPS, JSON.stringify(updatedGrps));
       localStorage.setItem(STORAGE_KEY_TTASKS, JSON.stringify(updatedTasks));
 
-      setDivisions(instantiated.divisions);
-      setGroups(instantiated.groups);
-      setTasks(instantiated.tasks);
-      if (instantiated.divisions[0]) {
-        setActiveDivisionId(instantiated.divisions[0].id);
-      }
+      return {
+        divisions: instantiated.divisions,
+        groups: instantiated.groups,
+        tasks: instantiated.tasks,
+        activeDivisionId: instantiated.divisions[0]?.id || '',
+      };
     } else {
-      setDivisions(eventDivs);
       const divIds = new Set(eventDivs.map((d) => d.id));
       const eventGroups = allGrps.filter((g) => divIds.has(g.tracker_division_id));
       const grpIds = new Set(eventGroups.map((g) => g.id));
       const eventTasks = allTasks.filter((t) => grpIds.has(t.group_id));
 
-      setGroups(eventGroups);
-      setTasks(eventTasks);
-      if (eventDivs[0]) {
-        setActiveDivisionId(eventDivs[0].id);
-      }
+      return {
+        divisions: eventDivs,
+        groups: eventGroups,
+        tasks: eventTasks,
+        activeDivisionId: eventDivs[0]?.id || '',
+      };
     }
-  }, [currentEvent, eventId]);
+  } catch {
+    return {
+      divisions: [] as TrackerDivision[],
+      groups: [] as TrackerGroup[],
+      tasks: [] as TrackerTask[],
+      activeDivisionId: '',
+    };
+  }
+}
+
+export function useEventTracker() {
+  const { id: eventId } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { role } = useAuth();
+  const canEditTracker = role === 'superadmin' || role === 'po';
+
+  const [events] = useState<OrganizationEvent[]>(() => {
+    try {
+      const raw = localStorage.getItem('gdgoc_events_data');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const currentEvent = useMemo(() => {
+    return events.find((e) => e.id === eventId);
+  }, [events, eventId]);
+
+  const [initialTracker] = useState(() => loadInitialTrackerState(eventId, currentEvent));
+  const [divisions] = useState<TrackerDivision[]>(initialTracker.divisions);
+  const [groups, setGroups] = useState<TrackerGroup[]>(initialTracker.groups);
+  const [tasks, setTasks] = useState<TrackerTask[]>(initialTracker.tasks);
+  const [activeDivisionId, setActiveDivisionId] = useState<string>(initialTracker.activeDivisionId);
+  const [stageFilter, setStageFilter] = useState<'all' | TaskStage>('all');
+  const [isSaved, setIsSaved] = useState(false);
 
   // Divisi aktif saat ini
   const currentDivision = useMemo(() => {

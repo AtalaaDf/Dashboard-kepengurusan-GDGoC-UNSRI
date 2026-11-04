@@ -41,10 +41,15 @@ export function usePublicPayment() {
 
   // Ambil data item kas yang sudah dibayar atau pending untuk member terpilih
   const activeItemsForMember: KasSubmissionItem[] = useMemo(() => {
+    void isSuccess;
     if (!selectedMemberId) return [];
-    const raw = localStorage.getItem('gdgoc_kas_items');
-    const items: KasSubmissionItem[] = raw ? JSON.parse(raw) : [];
-    return items.filter((i) => i.member_id === selectedMemberId && i.is_active);
+    try {
+      const raw = localStorage.getItem('gdgoc_kas_items');
+      const items: KasSubmissionItem[] = raw ? JSON.parse(raw) : [];
+      return items.filter((i) => i.member_id === selectedMemberId && i.is_active);
+    } catch {
+      return [];
+    }
   }, [selectedMemberId, isSuccess]);
 
   // Bulan yang sudah dibayar atau pending (harus disable)
