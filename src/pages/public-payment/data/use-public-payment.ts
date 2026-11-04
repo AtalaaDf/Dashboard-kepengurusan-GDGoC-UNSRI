@@ -26,6 +26,7 @@ export function usePublicPayment() {
   const [selectedFineMonths, setSelectedFineMonths] = useState<number[]>([]);
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [proofPreviewUrl, setProofPreviewUrl] = useState<string | null>(null);
+  const [proofBase64, setProofBase64] = useState<string | null>(null);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -59,10 +60,9 @@ export function usePublicPayment() {
       .map((i) => i.month);
   }, [activeItemsForMember]);
 
-  // Simulasi bulan yang terkena denda (misal: bulan sebelum bulan saat ini yang belum dibayar)
+  // Seluruh bulan yang dapat dipilih untuk denda keterlambatan (Januari s.d. November)
   const availableFineMonths = useMemo(() => {
-    // Sebagai contoh realistis: bulan 1 s/d 5 berpotensi kena denda jika belum dibayar
-    return [1, 2, 3, 4, 5].filter(
+    return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].filter(
       (m) => !activeItemsForMember.some((i) => i.kind === 'fine' && i.month === m)
     );
   }, [activeItemsForMember]);
@@ -119,7 +119,17 @@ export function usePublicPayment() {
     }
 
     setProofFile(file);
-    setProofPreviewUrl(URL.createObjectURL(file));
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      setProofBase64(dataUrl);
+      setProofPreviewUrl(dataUrl);
+    };
+    reader.onerror = () => {
+      setFormError('Gagal membaca berkas gambar. Silakan coba kembali.');
+    };
+    reader.readAsDataURL(file);
     setFormError(null);
   };
 
@@ -142,7 +152,7 @@ export function usePublicPayment() {
       return;
     }
 
-    if (!proofFile && !proofPreviewUrl) {
+    if (!proofFile && !proofPreviewUrl && !proofBase64) {
       setFormError('Silakan unggah bukti transfer pembayaran.');
       return;
     }
@@ -159,7 +169,7 @@ export function usePublicPayment() {
       id: submissionId,
       member_id: selectedMemberId,
       status: 'pending',
-      proof_path: proofPreviewUrl || '/logoGDG.png',
+      proof_path: proofBase64 || proofPreviewUrl || '/logoGDG.png',
       total_amount: totalAmount,
       submitted_at: new Date().toISOString(),
       reviewed_at: null,
@@ -214,6 +224,7 @@ export function usePublicPayment() {
     setSelectedFineMonths([]);
     setProofFile(null);
     setProofPreviewUrl(null);
+    setProofBase64(null);
     setIsSuccess(false);
     setFormError(null);
   };
