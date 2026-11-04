@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, type ReactNode }
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import type { UserRole } from '@/types';
+import { DUMMY_ACCOUNTS } from './dummy-accounts';
 
 interface AuthContextValue {
   user: User | null;
@@ -10,9 +11,12 @@ interface AuthContextValue {
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
+  signInAsDummy: (role: UserRole) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+const DUMMY_STORAGE_KEY = 'gdgoc_dummy_auth';
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -37,11 +41,39 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const createDummyUser = (accountRole: UserRole, email: string): User => {
+    return {
+      id: `dummy-${accountRole}`,
+      app_metadata: {},
+      user_metadata: { role: accountRole },
+      aud: 'authenticated',
+      created_at: new Date().toISOString(),
+      email,
+    } as unknown as User;
+  };
+
   useEffect(() => {
     let isMounted = true;
 
     async function initAuth() {
       try {
+        // Periksa apakah ada sesi dummy lokal terlebih dahulu
+        const storedDummy = localStorage.getItem(DUMMY_STORAGE_KEY);
+        if (storedDummy) {
+          try {
+            const parsed = JSON.parse(storedDummy) as { role: UserRole; email: string };
+            if (isMounted) {
+              setRole(parsed.role);
+              setUser(createDummyUser(parsed.role, parsed.email));
+              setIsLoading(false);
+              return;
+            }
+          } catch {
+            localStorage.removeItem(DUMMY_STORAGE_KEY);
+          }
+        }
+
+        // Cek sesi Supabase jika tidak ada dummy
         const { data: { session: initialSession } } = await supabase.auth.getSession();
         if (!isMounted) return;
 
@@ -56,6 +88,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         } else {
           setRole(null);
         }
+      } catch {
+        if (isMounted) {
+          setRole(null);
+          setUser(null);
+        }
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -68,6 +105,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, newSession) => {
         if (!isMounted) return;
+        // Jangan override jika sedang mode dummy aktif
+        if (localStorage.getItem(DUMMY_STORAGE_KEY)) return;
+
         setSession(newSession);
         setUser(newSession?.user ?? null);
 
@@ -89,7 +129,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, []);
 
+  const signInAsDummy = (targetRole: UserRole) => {
+    const match = DUMMY_ACCOUNTS.find((a) => a.role === targetRole) || DUMMY_ACCOUNTS[0];
+    localStorage.setItem(
+      DUMMY_STORAGE_KEY,
+      JSON.stringify({ role: match.role, email: match.email })
+    );
+    setUser(createDummyUser(match.role, match.email));
+    setRole(match.role);
+    setSession(null);
+  };
+
   const signIn = async (email: string, password: string): Promise<{ error: string | null }> => {
+    // 1. Cek kecocokan dengan akun dummy untuk testing lokal
+    const matchedDummy = DUMMY_ACCOUNTS.find(
+      (a) => a.email.toLowerCase() === email.trim().toLowerCase()
+    );
+
+    if (matchedDummy) {
+      // Izinkan login dummy
+      signInAsDummy(matchedDummy.role);
+      return { error: null };
+    }
+
+    // 2. Jika bukan dummy, coba autentikasi Supabase live
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -112,7 +175,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const signOut = async (): Promise<void> => {
-    await supabase.auth.signOut();
+    localStorage.removeItem(DUMMY_STORAGE_KEY);
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // Abaikan bila network offline
+    }
     setUser(null);
     setSession(null);
     setRole(null);
@@ -127,6 +195,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isLoading,
         signIn,
         signOut,
+        signInAsDummy,
       }}
     >
       {children}

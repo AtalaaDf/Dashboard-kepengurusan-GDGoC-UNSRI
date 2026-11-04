@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/data/auth/auth-context';
+import { Footer } from '@/components/layout/Footer';
 import { useLogin } from './data/use-login';
 import { LoginFormSection } from './sections/LoginFormSection';
 
@@ -16,6 +17,7 @@ export const LoginPage: React.FC = () => {
     isSubmitting,
     handleEmailChange,
     handlePasswordChange,
+    handleQuickLoginAsRole,
     handleSubmit,
   } = useLogin();
 
@@ -48,9 +50,11 @@ export const LoginPage: React.FC = () => {
           formError={formError}
           isSubmitting={isSubmitting}
           onSubmit={handleSubmit}
+          onQuickLogin={handleQuickLoginAsRole}
         />
       </div>
+
+      <Footer />
     </div>
   );
 };
-
