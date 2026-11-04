@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/data/auth/auth-context';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
+import { PageProgressBar } from '@/components/common/PageProgressBar';
 import { LoginPage } from '@/pages/login';
 import { DashboardPage } from '@/pages/dashboard';
 import { MembersPage } from '@/pages/members';
@@ -45,6 +46,7 @@ export const AppRouter: React.FC = () => {
   return (
     <ErrorBoundary>
       <BrowserRouter>
+        <PageProgressBar />
         <AuthProvider>
           <Routes>
           {/* Rute Publik */}
