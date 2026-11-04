@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import type { KasSubmission, KasSubmissionItem, KasExpense, Member, Division } from '@/types';
+import type { KasSubmission, KasSubmissionItem, KasExpense, KasRecordType, Member, Division } from '@/types';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/data/auth/auth-context';
 
@@ -135,13 +135,19 @@ export function useCash() {
 
   // Hitung Saldo Kas secara langsung dari data dasar
   const totalApprovedIncome = useMemo(() => {
-    return submissions
+    const duesIncome = submissions
       .filter((s) => s.status === 'approved')
       .reduce((sum, s) => sum + s.total_amount, 0);
-  }, [submissions]);
+    const manualIncome = expenses
+      .filter((e) => e.type === 'income')
+      .reduce((sum, e) => sum + e.amount, 0);
+    return duesIncome + manualIncome;
+  }, [submissions, expenses]);
 
   const totalExpensesAmount = useMemo(() => {
-    return expenses.reduce((sum, e) => sum + e.amount, 0);
+    return expenses
+      .filter((e) => e.type !== 'income')
+      .reduce((sum, e) => sum + e.amount, 0);
   }, [expenses]);
 
   const currentBalance = useMemo(() => {
@@ -244,32 +250,42 @@ export function useCash() {
     return true;
   };
 
-  // Tambah Pengeluaran Kas
-  const addExpense = async (date: string, description: string, amount: number): Promise<boolean> => {
+  // Tambah Catatan Kas (Pengeluaran atau Pemasukan Sponsor/Lainnya)
+  const addCashRecord = async (
+    type: KasRecordType,
+    date: string,
+    description: string,
+    amount: number
+  ): Promise<boolean> => {
     if (!canReview) {
-      setErrorMessage('Hanya Superadmin dan Treasurer yang dapat mencatat pengeluaran.');
+      setErrorMessage('Hanya Superadmin dan Treasurer yang dapat mencatat kas.');
       return false;
     }
 
-    const newExpense: KasExpense = {
-      id: `exp-${Date.now()}`,
+    const newRecord: KasExpense = {
+      id: `${type === 'income' ? 'inc' : 'exp'}-${Date.now()}`,
       expense_date: date,
       description: description.trim(),
       amount,
+      type,
       recorded_by_role: role || 'executive',
       created_at: new Date().toISOString(),
     };
 
-    setExpenses((prev) => [newExpense, ...prev]);
+    setExpenses((prev) => [newRecord, ...prev]);
 
     try {
-      await supabase.from('kas_expenses').insert([newExpense]);
+      await supabase.from('kas_expenses').insert([newRecord]);
     } catch {
       // Offline fallback
     }
 
     setErrorMessage(null);
     return true;
+  };
+
+  const addExpense = (date: string, description: string, amount: number) => {
+    return addCashRecord('expense', date, description, amount);
   };
 
   const getMemberById = (memberId: string): Member | undefined => {
@@ -301,6 +317,7 @@ export function useCash() {
     canReview,
     approveSubmission,
     declineSubmission,
+    addCashRecord,
     addExpense,
     getMemberById,
     getDivisionByMemberId,

@@ -102,11 +102,14 @@ export interface KasSubmission {
   items?: KasSubmissionItem[];
 }
 
+export type KasRecordType = 'expense' | 'income';
+
 export interface KasExpense {
   id: string;
   expense_date: string;
   description: string;
   amount: number;
+  type?: KasRecordType;
   recorded_by_role: UserRole;
   created_at?: string;
 }

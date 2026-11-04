@@ -49,9 +49,14 @@ export function useDashboard() {
     const pendingCashCount = submissions.filter((s) => s.status === 'pending').length;
 
     const expenses: KasExpense[] = safeParse('gdgoc_kas_expenses', []);
-    const totalExpense = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const manualIncome = expenses
+      .filter((e) => e.type === 'income')
+      .reduce((sum, e) => sum + e.amount, 0);
+    const totalExpense = expenses
+      .filter((e) => e.type !== 'income')
+      .reduce((sum, e) => sum + e.amount, 0);
 
-    const balance = totalApproved - totalExpense;
+    const balance = totalApproved + manualIncome - totalExpense;
 
     return {
       cashBalance: formatCurrency(balance),

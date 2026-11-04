@@ -9,19 +9,21 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
-import { expenseSchema } from '../data/expense.schema';
+import { cashRecordSchema } from '../data/expense.schema';
+import type { KasRecordType } from '@/types';
 
 interface ExpenseModalSectionProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddExpense: (date: string, description: string, amount: number) => Promise<boolean>;
+  onAddRecord: (type: KasRecordType, date: string, description: string, amount: number) => Promise<boolean>;
 }
 
 export const ExpenseModalSection: React.FC<ExpenseModalSectionProps> = ({
   isOpen,
   onClose,
-  onAddExpense,
+  onAddRecord,
 }) => {
+  const [type, setType] = useState<KasRecordType>('expense');
   const [date, setDate] = useState('');
   const [description, setDescription] = useState('');
   const [amountStr, setAmountStr] = useState('');
@@ -31,6 +33,7 @@ export const ExpenseModalSection: React.FC<ExpenseModalSectionProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const resetForm = () => {
+    setType('expense');
     setDate('');
     setDescription('');
     setAmountStr('');
@@ -52,7 +55,8 @@ export const ExpenseModalSection: React.FC<ExpenseModalSectionProps> = ({
 
     const parsedAmount = parseInt(amountStr.replace(/\D/g, ''), 10) || 0;
 
-    const result = expenseSchema.safeParse({
+    const result = cashRecordSchema.safeParse({
+      type,
       expense_date: date,
       description,
       amount: parsedAmount,
@@ -67,7 +71,7 @@ export const ExpenseModalSection: React.FC<ExpenseModalSectionProps> = ({
     }
 
     setIsSubmitting(true);
-    const success = await onAddExpense(date, description, parsedAmount);
+    const success = await onAddRecord(type, date, description, parsedAmount);
     setIsSubmitting(false);
 
     if (success) {
@@ -75,19 +79,38 @@ export const ExpenseModalSection: React.FC<ExpenseModalSectionProps> = ({
     }
   };
 
+  const isIncome = type === 'income';
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Catat Pengeluaran Kas</DialogTitle>
+          <DialogTitle>Catat Kas Organisasi</DialogTitle>
           <DialogDescription>
-            Masukkan rincian pengeluaran dana kas organisasi (langsung mengurangi saldo).
+            Pilih jenis transaksi kas untuk mencatat pemasukan (sponsor, dsb.) atau pengeluaran dana organisasi.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-2">
+          {/* Dropdown Pilihan Jenis Transaksi */}
           <div className="flex flex-col gap-2">
-            <Label htmlFor="expense-date">Tanggal Pengeluaran</Label>
+            <Label htmlFor="cash-type">Jenis Transaksi Kas</Label>
+            <select
+              id="cash-type"
+              value={type}
+              onChange={(e) => setType(e.target.value as KasRecordType)}
+              disabled={isSubmitting}
+              className="min-h-[40px] px-3.5 py-2.5 rounded-lg border border-[#1e1e1e]/20 bg-white text-sm text-[#1e1e1e] outline-none focus:ring-2 focus:ring-[#4285f4]/30"
+            >
+              <option value="expense">Pengeluaran (Mengurangi Kas)</option>
+              <option value="income">Pemasukan (Sponsor / Hibah / Donasi - Menambah Kas)</option>
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="expense-date">
+              {isIncome ? 'Tanggal Pemasukan' : 'Tanggal Pengeluaran'}
+            </Label>
             <Input
               id="expense-date"
               type="date"
@@ -105,10 +128,16 @@ export const ExpenseModalSection: React.FC<ExpenseModalSectionProps> = ({
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="expense-desc">Keterangan Pengeluaran</Label>
+            <Label htmlFor="expense-desc">
+              {isIncome ? 'Keterangan Pemasukan' : 'Keterangan Pengeluaran'}
+            </Label>
             <Input
               id="expense-desc"
-              placeholder="Contoh: Konsumsi workshop dan sewa proyektor"
+              placeholder={
+                isIncome
+                  ? 'Contoh: Sponsorship Google Developers / Hibah Dies Natalis'
+                  : 'Contoh: Konsumsi workshop dan sewa proyektor'
+              }
               value={description}
               onChange={(e) => {
                 setDescription(e.target.value);
@@ -127,7 +156,7 @@ export const ExpenseModalSection: React.FC<ExpenseModalSectionProps> = ({
             <Input
               id="expense-amount"
               type="number"
-              placeholder="Contoh: 150000"
+              placeholder="Contoh: 250000"
               value={amountStr}
               onChange={(e) => {
                 setAmountStr(e.target.value);
@@ -155,7 +184,11 @@ export const ExpenseModalSection: React.FC<ExpenseModalSectionProps> = ({
               variant="default"
               disabled={isSubmitting}
             >
-              {isSubmitting ? 'Menyimpan...' : 'Simpan Pengeluaran'}
+              {isSubmitting
+                ? 'Menyimpan...'
+                : isIncome
+                ? 'Simpan Pemasukan'
+                : 'Simpan Pengeluaran'}
             </Button>
           </div>
         </form>
@@ -163,4 +196,3 @@ export const ExpenseModalSection: React.FC<ExpenseModalSectionProps> = ({
     </Dialog>
   );
 };
-

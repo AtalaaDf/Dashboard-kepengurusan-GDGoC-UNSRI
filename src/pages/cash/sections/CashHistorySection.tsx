@@ -41,9 +41,9 @@ export const CashHistorySection: React.FC<CashHistorySectionProps> = ({
     const expenseItems: CashTransaction[] = expenses.map((e) => ({
       id: e.id,
       date: e.expense_date,
-      type: 'expense',
+      type: e.type === 'income' ? 'income' : 'expense',
       title: e.description,
-      subtitle: 'Pengeluaran kas organisasi',
+      subtitle: e.type === 'income' ? 'Pemasukan kas (Sponsor/Donasi/Lainnya)' : 'Pengeluaran kas organisasi',
       amount: e.amount,
     }));
 

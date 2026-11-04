@@ -65,7 +65,7 @@ export const CashHeaderSection: React.FC<CashHeaderSectionProps> = ({
                 className="flex items-center gap-1.5 text-xs"
               >
                 <PlusIcon className="w-4 h-4" />
-                <span>Catat Pengeluaran</span>
+                <span>Catat Kas</span>
               </Button>
             </>
           )}

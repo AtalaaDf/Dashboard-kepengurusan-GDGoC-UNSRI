@@ -21,7 +21,7 @@ export const CashPage: React.FC = () => {
     canReview,
     approveSubmission,
     declineSubmission,
-    addExpense,
+    addCashRecord,
     getMemberById,
     getDivisionByMemberId,
     getItemsBySubmissionId,
@@ -87,7 +87,7 @@ export const CashPage: React.FC = () => {
       <ExpenseModalSection
         isOpen={isExpenseModalOpen}
         onClose={() => setIsExpenseModalOpen(false)}
-        onAddExpense={addExpense}
+        onAddRecord={addCashRecord}
       />
     </div>
   );

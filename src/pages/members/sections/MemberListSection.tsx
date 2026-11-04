@@ -106,7 +106,7 @@ export const MemberListSection: React.FC<MemberListSectionProps> = ({
                 <th className="py-3 px-4">Divisi</th>
                 <th className="py-3 px-4">Kategori</th>
                 <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4 text-right">Aksi</th>
+                <th className="py-3 px-4 text-right min-w-[200px] whitespace-nowrap">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#1e1e1e]/10">
@@ -143,7 +143,7 @@ export const MemberListSection: React.FC<MemberListSectionProps> = ({
                           {isActive ? 'Aktif' : 'Nonaktif'}
                         </Badge>
                       </td>
-                      <td className="py-3.5 px-4 text-right">
+                      <td className="py-3.5 px-4 text-right min-w-[200px] whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5 sm:gap-2">
                           <Link to={`/members/${member.id}`}>
                             <Button variant="outline" size="sm">
@@ -162,16 +162,15 @@ export const MemberListSection: React.FC<MemberListSectionProps> = ({
                                 {isActive ? 'Nonaktifkan' : 'Aktifkan'}
                               </Button>
 
-                              <Button
+                              <button
                                 type="button"
-                                variant="ghost"
-                                size="icon"
                                 onClick={() => setMemberToDelete(member)}
-                                className="h-8 w-8 text-[#ea4335] hover:bg-[#f8d8d8]"
+                                className="h-8 w-8 rounded-lg text-[#ea4335] hover:bg-[#f8d8d8] flex items-center justify-center transition-colors shrink-0 outline-none focus:ring-2 focus:ring-[#ea4335]/30 cursor-pointer"
                                 title="Hapus member permanen"
+                                aria-label="Hapus member permanen"
                               >
-                                <TrashIcon className="w-4 h-4 shrink-0" />
-                              </Button>
+                                <TrashIcon className="w-4 h-4 shrink-0 stroke-[#ea4335] text-[#ea4335]" />
+                              </button>
                             </>
                           )}
                         </div>
