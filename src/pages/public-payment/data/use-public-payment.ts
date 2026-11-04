@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { Division, Member, KasSubmission, KasSubmissionItem } from '@/types';
+import { supabase } from '@/lib/supabase';
 
 const MONTH_NAMES = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -10,15 +11,20 @@ const MONTHLY_FEE = 10000;
 const MONTHLY_FINE = 3000;
 
 export function usePublicPayment() {
-  const divisions: Division[] = useMemo(() => {
+  const [divisions, setDivisions] = useState<Division[]>(() => {
     const raw = localStorage.getItem('gdgoc_divisions_data');
     return raw ? JSON.parse(raw) : [];
-  }, []);
+  });
 
-  const members: Member[] = useMemo(() => {
+  const [members, setMembers] = useState<Member[]>(() => {
     const raw = localStorage.getItem('gdgoc_members_data');
     return raw ? JSON.parse(raw) : [];
-  }, []);
+  });
+
+  const [allItems, setAllItems] = useState<KasSubmissionItem[]>(() => {
+    const raw = localStorage.getItem('gdgoc_kas_items');
+    return raw ? JSON.parse(raw) : [];
+  });
 
   const [selectedDivisionId, setSelectedDivisionId] = useState('');
   const [selectedMemberId, setSelectedMemberId] = useState('');
@@ -32,6 +38,25 @@ export function usePublicPayment() {
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Ambil data divisi dan member aktif langsung dari Supabase
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const { data: divData } = await supabase.from('divisions').select('*');
+        if (divData) setDivisions(divData as Division[]);
+
+        const { data: memData } = await supabase.from('members').select('*').eq('status', 'active');
+        if (memData) setMembers(memData as Member[]);
+
+        const { data: itemData } = await supabase.from('kas_submission_items').select('*').eq('is_active', true);
+        if (itemData) setAllItems(itemData as KasSubmissionItem[]);
+      } catch {
+        // Fallback local
+      }
+    }
+    loadData();
+  }, []);
+
   // Filter member aktif berdasarkan divisi terpilih
   const filteredMembers = useMemo(() => {
     if (!selectedDivisionId) return [];
@@ -42,16 +67,9 @@ export function usePublicPayment() {
 
   // Ambil data item kas yang sudah dibayar atau pending untuk member terpilih
   const activeItemsForMember: KasSubmissionItem[] = useMemo(() => {
-    void isSuccess;
     if (!selectedMemberId) return [];
-    try {
-      const raw = localStorage.getItem('gdgoc_kas_items');
-      const items: KasSubmissionItem[] = raw ? JSON.parse(raw) : [];
-      return items.filter((i) => i.member_id === selectedMemberId && i.is_active);
-    } catch {
-      return [];
-    }
-  }, [selectedMemberId, isSuccess]);
+    return allItems.filter((i) => i.member_id === selectedMemberId && i.is_active);
+  }, [selectedMemberId, allItems]);
 
   // Bulan yang sudah dibayar atau pending (harus disable)
   const paidOrPendingMonths = useMemo(() => {
@@ -164,11 +182,9 @@ export function usePublicPayment() {
   const handleConfirmSubmit = async () => {
     setIsSubmitting(true);
 
-    const submissionId = `sub-${Date.now()}`;
-    const newSubmission: KasSubmission = {
-      id: submissionId,
+    const submissionPayload = {
       member_id: selectedMemberId,
-      status: 'pending',
+      status: 'pending' as const,
       proof_path: proofBase64 || proofPreviewUrl || '/logoGDG.png',
       total_amount: totalAmount,
       submitted_at: new Date().toISOString(),
@@ -176,10 +192,30 @@ export function usePublicPayment() {
       reviewed_by_role: null,
     };
 
-    const newItems: KasSubmissionItem[] = [
+    let insertedSubmissionId = `sub-${Date.now()}`;
+
+    try {
+      const { data: subData, error: subError } = await supabase
+        .from('kas_submissions')
+        .insert([submissionPayload])
+        .select()
+        .single();
+
+      if (!subError && subData) {
+        insertedSubmissionId = subData.id;
+      }
+    } catch {
+      // offline fallback
+    }
+
+    const newSubmission: KasSubmission = {
+      id: insertedSubmissionId,
+      ...submissionPayload,
+    };
+
+    const newItemsPayload = [
       ...selectedMonths.map((m) => ({
-        id: `item-${submissionId}-d-${m}`,
-        submission_id: submissionId,
+        submission_id: insertedSubmissionId,
         member_id: selectedMemberId,
         kind: 'dues' as const,
         month: m,
@@ -187,8 +223,7 @@ export function usePublicPayment() {
         is_active: true,
       })),
       ...selectedFineMonths.map((m) => ({
-        id: `item-${submissionId}-f-${m}`,
-        submission_id: submissionId,
+        submission_id: insertedSubmissionId,
         member_id: selectedMemberId,
         kind: 'fine' as const,
         month: m,
@@ -197,20 +232,43 @@ export function usePublicPayment() {
       })),
     ];
 
-    // Simpan ke localStorage
-    const rawSubs = localStorage.getItem('gdgoc_kas_submissions');
-    const existingSubs: KasSubmission[] = rawSubs ? JSON.parse(rawSubs) : [];
-    localStorage.setItem(
-      'gdgoc_kas_submissions',
-      JSON.stringify([newSubmission, ...existingSubs])
-    );
+    try {
+      const { data: itemsData, error: itemsError } = await supabase
+        .from('kas_submission_items')
+        .insert(newItemsPayload)
+        .select();
 
-    const rawItems = localStorage.getItem('gdgoc_kas_items');
-    const existingItems: KasSubmissionItem[] = rawItems ? JSON.parse(rawItems) : [];
-    localStorage.setItem(
-      'gdgoc_kas_items',
-      JSON.stringify([...newItems, ...existingItems])
-    );
+      if (!itemsError && itemsData) {
+        setAllItems((prev) => [...(itemsData as KasSubmissionItem[]), ...prev]);
+      }
+    } catch {
+      // offline fallback
+    }
+
+    const fallbackItems: KasSubmissionItem[] = newItemsPayload.map((item, index) => ({
+      id: `item-${insertedSubmissionId}-${index}`,
+      ...item,
+    }));
+
+    setAllItems((prev) => [...fallbackItems, ...prev]);
+
+    try {
+      const rawSubs = localStorage.getItem('gdgoc_kas_submissions');
+      const existingSubs: KasSubmission[] = rawSubs ? JSON.parse(rawSubs) : [];
+      localStorage.setItem(
+        'gdgoc_kas_submissions',
+        JSON.stringify([newSubmission, ...existingSubs])
+      );
+
+      const rawItems = localStorage.getItem('gdgoc_kas_items');
+      const existingItems: KasSubmissionItem[] = rawItems ? JSON.parse(rawItems) : [];
+      localStorage.setItem(
+        'gdgoc_kas_items',
+        JSON.stringify([...fallbackItems, ...existingItems])
+      );
+    } catch {
+      // ignore
+    }
 
     setIsSubmitting(false);
     setIsConfirmOpen(false);

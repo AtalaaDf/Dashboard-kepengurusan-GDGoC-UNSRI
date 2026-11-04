@@ -34,32 +34,6 @@ const MONTH_NAMES = [
   'Juli', 'Agustus', 'September', 'Oktober', 'November'
 ];
 
-const INITIAL_COMPETITIONS: CompetitionEntry[] = [
-  {
-    id: 'comp-1',
-    member_id: 'mem-1',
-    competition_name: 'Hackathon Nasional Gemastik 2026',
-    organizer: 'Puspresnas Kemendikbud',
-    created_at: '2026-10-15',
-  },
-  {
-    id: 'comp-2',
-    member_id: 'mem-3',
-    competition_name: 'Competitive Programming Compfest 18',
-    organizer: 'Universitas Indonesia',
-    created_at: '2026-10-20',
-  },
-];
-
-const INITIAL_PUNISHMENTS: Punishment[] = [
-  {
-    id: 'pun-1',
-    member_id: 'mem-5',
-    is_completed: false,
-    completed_at: null,
-  },
-];
-
 const STORAGE_KEY_COMPETITIONS = 'gdgoc_competitions_data';
 const STORAGE_KEY_PUNISHMENTS = 'gdgoc_punishments_data';
 
@@ -68,35 +42,28 @@ export function useMemberDetail() {
   const { role } = useAuth();
   const canRecord = role === 'superadmin' || role === 'admin';
 
-  const members: Member[] = useMemo(() => {
+  const [members, setMembers] = useState<Member[]>(() => {
     const raw = localStorage.getItem('gdgoc_members_data');
     return raw ? JSON.parse(raw) : [];
-  }, []);
+  });
 
-  const divisions: Division[] = useMemo(() => {
+  const [divisions, setDivisions] = useState<Division[]>(() => {
     const raw = localStorage.getItem('gdgoc_divisions_data');
     return raw ? JSON.parse(raw) : [];
-  }, []);
+  });
 
-  const events: OrganizationEvent[] = useMemo(() => {
+  const [events, setEvents] = useState<OrganizationEvent[]>(() => {
     const raw = localStorage.getItem('gdgoc_events_data');
     return raw ? JSON.parse(raw) : [];
-  }, []);
+  });
 
-  const attendances: Attendance[] = useMemo(() => {
+  const [attendances, setAttendances] = useState<Attendance[]>(() => {
     const raw = localStorage.getItem('gdgoc_attendances_data');
     return raw ? JSON.parse(raw) : [];
-  }, []);
-
-  const [competitions, setCompetitions] = useState<CompetitionEntry[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_COMPETITIONS);
-    return saved ? JSON.parse(saved) : INITIAL_COMPETITIONS;
   });
 
-  const [punishments, setPunishments] = useState<Punishment[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_PUNISHMENTS);
-    return saved ? JSON.parse(saved) : INITIAL_PUNISHMENTS;
-  });
+  const [competitions, setCompetitions] = useState<CompetitionEntry[]>([]);
+  const [punishments, setPunishments] = useState<Punishment[]>([]);
 
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -108,19 +75,32 @@ export function useMemberDetail() {
     localStorage.setItem(STORAGE_KEY_PUNISHMENTS, JSON.stringify(punishments));
   }, [punishments]);
 
-  // Coba ambil dari Supabase jika online
   useEffect(() => {
     async function loadFromSupabase() {
       try {
-        const { data: compData } = await supabase.from('competition_entries').select('*');
-        if (compData && compData.length > 0) {
+        const { data: compData, error: compErr } = await supabase.from('competition_entries').select('*');
+        if (!compErr && compData) {
           setCompetitions(compData as CompetitionEntry[]);
+          localStorage.setItem(STORAGE_KEY_COMPETITIONS, JSON.stringify(compData));
         }
 
-        const { data: punData } = await supabase.from('punishments').select('*');
-        if (punData && punData.length > 0) {
+        const { data: punData, error: punErr } = await supabase.from('punishments').select('*');
+        if (!punErr && punData) {
           setPunishments(punData as Punishment[]);
+          localStorage.setItem(STORAGE_KEY_PUNISHMENTS, JSON.stringify(punData));
         }
+
+        const { data: memData } = await supabase.from('members').select('*');
+        if (memData) setMembers(memData as Member[]);
+
+        const { data: divData } = await supabase.from('divisions').select('*');
+        if (divData) setDivisions(divData as Division[]);
+
+        const { data: evtData } = await supabase.from('events').select('*');
+        if (evtData) setEvents(evtData as OrganizationEvent[]);
+
+        const { data: attData } = await supabase.from('attendances').select('*');
+        if (attData) setAttendances(attData as Attendance[]);
       } catch {
         // Fallback local
       }

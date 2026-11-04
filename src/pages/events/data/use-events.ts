@@ -3,114 +3,39 @@ import type { OrganizationEvent, Attendance, TrackerDivision, TrackerGroup, Trac
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/data/auth/auth-context';
 
-const INITIAL_EVENTS: OrganizationEvent[] = [
-  {
-    id: 'evt-1',
-    batch_id: 'batch-2026',
-    name: 'Info Session & Welcoming Party',
-    event_date: '2026-09-12',
-    type: 'offline',
-    status: 'active',
-    attendance_finalized: true,
-  },
-  {
-    id: 'evt-2',
-    batch_id: 'batch-2026',
-    name: 'Workshop Git & GitHub',
-    event_date: '2026-09-26',
-    type: 'online',
-    status: 'active',
-    attendance_finalized: true,
-  },
-  {
-    id: 'evt-3',
-    batch_id: 'batch-2026',
-    name: 'Study Jam 1: Web Development Basics',
-    event_date: '2026-10-10',
-    type: 'online',
-    status: 'active',
-    attendance_finalized: true,
-  },
-  {
-    id: 'evt-4',
-    batch_id: 'batch-2026',
-    name: 'Tech Talk: Cloud Architecture',
-    event_date: '2026-10-24',
-    type: 'offline',
-    status: 'active',
-    attendance_finalized: false,
-  },
-  {
-    id: 'evt-5',
-    batch_id: 'batch-2026',
-    name: 'Study Jam 2: React State Management',
-    event_date: '2026-11-07',
-    type: 'online',
-    status: 'active',
-    attendance_finalized: false,
-  },
-];
-
-const INITIAL_ATTENDANCES: Attendance[] = [
-  { id: 'att-1', event_id: 'evt-1', member_id: 'mem-1', recorded_by_role: 'admin' },
-  { id: 'att-2', event_id: 'evt-1', member_id: 'mem-2', recorded_by_role: 'admin' },
-  { id: 'att-3', event_id: 'evt-1', member_id: 'mem-3', recorded_by_role: 'admin' },
-  { id: 'att-4', event_id: 'evt-1', member_id: 'mem-4', recorded_by_role: 'admin' },
-
-  { id: 'att-5', event_id: 'evt-2', member_id: 'mem-1', recorded_by_role: 'admin' },
-  { id: 'att-6', event_id: 'evt-2', member_id: 'mem-2', recorded_by_role: 'admin' },
-  { id: 'att-7', event_id: 'evt-2', member_id: 'mem-4', recorded_by_role: 'admin' },
-
-  { id: 'att-8', event_id: 'evt-3', member_id: 'mem-2', recorded_by_role: 'admin' },
-  { id: 'att-9', event_id: 'evt-3', member_id: 'mem-3', recorded_by_role: 'admin' },
-  { id: 'att-10', event_id: 'evt-3', member_id: 'mem-4', recorded_by_role: 'admin' },
-];
-
 const STORAGE_KEY_EVENTS = 'gdgoc_events_data';
 const STORAGE_KEY_ATTENDANCES = 'gdgoc_attendances_data';
 
 export function useEvents() {
   const { role } = useAuth();
 
-  const [events, setEvents] = useState<OrganizationEvent[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_EVENTS);
-    return saved ? JSON.parse(saved) : INITIAL_EVENTS;
-  });
-
-  const [attendances, setAttendances] = useState<Attendance[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_ATTENDANCES);
-    return saved ? JSON.parse(saved) : INITIAL_ATTENDANCES;
-  });
+  const [events, setEvents] = useState<OrganizationEvent[]>([]);
+  const [attendances, setAttendances] = useState<Attendance[]>([]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>('all');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('all');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  // Simpan ke localStorage saat berubah
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(events));
-  }, [events]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_ATTENDANCES, JSON.stringify(attendances));
-  }, [attendances]);
-
-  // Coba ambil dari Supabase jika ada koneksi
+  
   useEffect(() => {
     async function loadFromSupabase() {
       try {
-        const { data: eventData } = await supabase.from('events').select('*');
-        if (eventData && eventData.length > 0) {
+        const { data: eventData, error: eventErr } = await supabase.from('events').select('*');
+        if (!eventErr && eventData) {
           setEvents(eventData as OrganizationEvent[]);
+          localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(eventData));
         }
 
-        const { data: attData } = await supabase.from('attendances').select('*');
-        if (attData && attData.length > 0) {
+        const { data: attData, error: attErr } = await supabase.from('attendances').select('*');
+        if (!attErr && attData) {
           setAttendances(attData as Attendance[]);
+          localStorage.setItem(STORAGE_KEY_ATTENDANCES, JSON.stringify(attData));
         }
       } catch {
-        // Fallback local
+        const savedEvents = localStorage.getItem(STORAGE_KEY_EVENTS);
+        if (savedEvents) setEvents(JSON.parse(savedEvents));
+        const savedAtts = localStorage.getItem(STORAGE_KEY_ATTENDANCES);
+        if (savedAtts) setAttendances(JSON.parse(savedAtts));
       }
     }
     loadFromSupabase();
@@ -126,21 +51,40 @@ export function useEvents() {
       return false;
     }
 
-    const newEvent: OrganizationEvent = {
-      id: `evt-${Date.now()}`,
-      batch_id: 'batch-2026',
+    let activeBatchId = 'b0000000-0000-0000-0000-000000002026';
+    try {
+      const { data: batchData } = await supabase.from('batches').select('id').eq('is_active', true).maybeSingle();
+      if (batchData?.id) {
+        activeBatchId = batchData.id;
+      }
+    } catch {
+      // abaikan
+    }
+
+    const eventPayload = {
+      batch_id: activeBatchId,
       name: name.trim(),
       event_date: eventDate,
       type,
-      status: 'active',
+      status: 'active' as const,
       attendance_finalized: false,
     };
 
     try {
-      await supabase.from('events').insert([newEvent]);
+      const { data, error } = await supabase.from('events').insert([eventPayload]).select().single();
+      if (!error && data) {
+        setEvents((prev) => [data as OrganizationEvent, ...prev]);
+        setErrorMessage(null);
+        return true;
+      }
     } catch {
       // Offline fallback
     }
+
+    const newEvent: OrganizationEvent = {
+      id: `evt-${Date.now()}`,
+      ...eventPayload,
+    };
 
     setEvents((prev) => [newEvent, ...prev]);
     setErrorMessage(null);

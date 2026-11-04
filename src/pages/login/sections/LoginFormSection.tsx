@@ -3,8 +3,6 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { ANIMATIONS } from '@/lib/animations';
-import { DUMMY_ACCOUNTS } from '@/data/auth/dummy-accounts';
-import type { UserRole } from '@/types';
 
 export interface LoginFormSectionProps {
   emailValue: string;
@@ -16,7 +14,6 @@ export interface LoginFormSectionProps {
   formError?: string | null;
   isSubmitting: boolean;
   onSubmit: (e: React.FormEvent) => void;
-  onQuickLogin: (role: UserRole) => void;
 }
 
 export const LoginFormSection: React.FC<LoginFormSectionProps> = ({
@@ -29,7 +26,6 @@ export const LoginFormSection: React.FC<LoginFormSectionProps> = ({
   formError,
   isSubmitting,
   onSubmit,
-  onQuickLogin,
 }) => {
   return (
     <div className={`w-full max-w-md bg-white border border-[#1e1e1e]/10 rounded-2xl p-8 relative z-10 ${ANIMATIONS.PAGE_FADE_IN}`}>
@@ -99,32 +95,6 @@ export const LoginFormSection: React.FC<LoginFormSectionProps> = ({
           </Button>
         </div>
       </form>
-
-      {/* Bagian Uji Coba Akun Jabatan Dummy */}
-      <div className="mt-8 pt-6 border-t border-[#1e1e1e]/10">
-        <div className="flex flex-col gap-3">
-          <div>
-            <p className="text-xs font-medium text-[#1e1e1e]">Uji Coba Cepat (Mode Dummy)</p>
-            <p className="text-xs text-[#1e1e1e]/60 mt-0.5">
-              Pilih peran akun jabatan untuk mencoba sidebar dan antarmuka tanpa Supabase:
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 mt-1">
-            {DUMMY_ACCOUNTS.map((acc) => (
-              <button
-                key={acc.role}
-                type="button"
-                onClick={() => onQuickLogin(acc.role)}
-                className="text-left p-2.5 rounded-lg border border-[#1e1e1e]/10 bg-[#f0f0f0]/60 hover:bg-[#c3ecf6]/40 hover:border-[#4285f4]/40 transition-colors"
-              >
-                <p className="text-xs font-semibold text-[#1e1e1e]">{acc.name}</p>
-                <p className="text-[11px] text-[#1e1e1e]/60 truncate">{acc.email}</p>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

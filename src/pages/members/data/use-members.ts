@@ -3,65 +3,13 @@ import type { Division, Member } from '@/types';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/data/auth/auth-context';
 
-const INITIAL_DIVISIONS: Division[] = [
-  { id: 'div-1', name: 'Frontend Development', type: 'technical' },
-  { id: 'div-2', name: 'Backend Development', type: 'technical' },
-  { id: 'div-3', name: 'UI/UX Design', type: 'non_technical' },
-  { id: 'div-4', name: 'Public Relations', type: 'non_technical' },
-];
-
-const INITIAL_MEMBERS: Member[] = [
-  {
-    id: 'mem-1',
-    batch_id: 'batch-2026',
-    division_id: 'div-1',
-    full_name: 'Ahmad Fauzan',
-    status: 'active',
-  },
-  {
-    id: 'mem-2',
-    batch_id: 'batch-2026',
-    division_id: 'div-1',
-    full_name: 'Siti Rahmawati',
-    status: 'active',
-  },
-  {
-    id: 'mem-3',
-    batch_id: 'batch-2026',
-    division_id: 'div-2',
-    full_name: 'Budi Santoso',
-    status: 'active',
-  },
-  {
-    id: 'mem-4',
-    batch_id: 'batch-2026',
-    division_id: 'div-3',
-    full_name: 'Nabila Putri',
-    status: 'active',
-  },
-  {
-    id: 'mem-5',
-    batch_id: 'batch-2026',
-    division_id: 'div-4',
-    full_name: 'Dimas Anggara',
-    status: 'inactive',
-  },
-];
-
 const STORAGE_KEY_MEMBERS = 'gdgoc_members_data';
 const STORAGE_KEY_DIVISIONS = 'gdgoc_divisions_data';
 
 export function useMembers() {
   const { role } = useAuth();
-  const [divisions, setDivisions] = useState<Division[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_DIVISIONS);
-    return saved ? JSON.parse(saved) : INITIAL_DIVISIONS;
-  });
-
-  const [members, setMembers] = useState<Member[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_MEMBERS);
-    return saved ? JSON.parse(saved) : INITIAL_MEMBERS;
-  });
+  const [divisions, setDivisions] = useState<Division[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDivisionFilter, setSelectedDivisionFilter] = useState<string>('all');
@@ -69,28 +17,24 @@ export function useMembers() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_DIVISIONS, JSON.stringify(divisions));
-  }, [divisions]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_MEMBERS, JSON.stringify(members));
-  }, [members]);
-
-  // Coba ambil dari Supabase jika terhubung
-  useEffect(() => {
     async function loadFromSupabase() {
       try {
-        const { data: divData } = await supabase.from('divisions').select('*');
-        if (divData && divData.length > 0) {
+        const { data: divData, error: divErr } = await supabase.from('divisions').select('*');
+        if (!divErr && divData) {
           setDivisions(divData as Division[]);
+          localStorage.setItem(STORAGE_KEY_DIVISIONS, JSON.stringify(divData));
         }
 
-        const { data: memData } = await supabase.from('members').select('*');
-        if (memData && memData.length > 0) {
+        const { data: memData, error: memErr } = await supabase.from('members').select('*');
+        if (!memErr && memData) {
           setMembers(memData as Member[]);
+          localStorage.setItem(STORAGE_KEY_MEMBERS, JSON.stringify(memData));
         }
       } catch {
-        // Fallback memakai local state
+        const savedDivs = localStorage.getItem(STORAGE_KEY_DIVISIONS);
+        if (savedDivs) setDivisions(JSON.parse(savedDivs));
+        const savedMems = localStorage.getItem(STORAGE_KEY_MEMBERS);
+        if (savedMems) setMembers(JSON.parse(savedMems));
       }
     }
     loadFromSupabase();
@@ -111,17 +55,27 @@ export function useMembers() {
       return false;
     }
 
-    const newDivision: Division = {
-      id: `div-${Date.now()}`,
+    const divisionPayload = {
       name: trimmed,
       type,
     };
 
     try {
-      await supabase.from('divisions').insert([newDivision]);
+      const { data, error } = await supabase.from('divisions').insert([divisionPayload]).select().single();
+      if (!error && data) {
+        setDivisions((prev) => [...prev, data as Division]);
+        setErrorMessage(null);
+        return true;
+      }
     } catch {
-      // Offline fallback
+      // Fallback
     }
+
+    const newDivision: Division = {
+      id: `div-${Date.now()}`,
+      name: trimmed,
+      type,
+    };
 
     setDivisions((prev) => [...prev, newDivision]);
     setErrorMessage(null);
@@ -159,19 +113,39 @@ export function useMembers() {
       return false;
     }
 
-    const newMember: Member = {
-      id: `mem-${Date.now()}`,
-      batch_id: 'batch-2026',
+    // Cari batch aktif jika ada
+    let activeBatchId = 'b0000000-0000-0000-0000-000000002026';
+    try {
+      const { data: batchData } = await supabase.from('batches').select('id').eq('is_active', true).maybeSingle();
+      if (batchData?.id) {
+        activeBatchId = batchData.id;
+      }
+    } catch {
+      // abaikan
+    }
+
+    const memberPayload = {
+      batch_id: activeBatchId,
       division_id: divisionId,
       full_name: fullName.trim(),
-      status: 'active',
+      status: 'active' as const,
     };
 
     try {
-      await supabase.from('members').insert([newMember]);
+      const { data, error } = await supabase.from('members').insert([memberPayload]).select().single();
+      if (!error && data) {
+        setMembers((prev) => [data as Member, ...prev]);
+        setErrorMessage(null);
+        return true;
+      }
     } catch {
       // Offline fallback
     }
+
+    const newMember: Member = {
+      id: `mem-${Date.now()}`,
+      ...memberPayload,
+    };
 
     setMembers((prev) => [newMember, ...prev]);
     setErrorMessage(null);

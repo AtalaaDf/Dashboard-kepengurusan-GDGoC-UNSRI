@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/data/auth/auth-context';
 import { formatCurrency } from '@/lib/formatters';
+import { supabase } from '@/lib/supabase';
 import type { Member, Division, OrganizationEvent, KasSubmission, KasExpense } from '@/types';
 
 export interface DashboardMetrics {
@@ -18,37 +19,98 @@ export function useDashboard() {
   const { role } = useAuth();
   const canReviewCash = role === 'superadmin' || role === 'executive';
 
-  const metrics: DashboardMetrics = useMemo(() => {
-    const safeParse = <T>(key: string, fallback: T): T => {
-      try {
-        const raw = localStorage.getItem(key);
-        return raw ? JSON.parse(raw) : fallback;
-      } catch {
-        return fallback;
-      }
-    };
+  const [members, setMembers] = useState<Member[]>(() => {
+    try {
+      const raw = localStorage.getItem('gdgoc_members_data');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
 
+  const [divisions, setDivisions] = useState<Division[]>(() => {
+    try {
+      const raw = localStorage.getItem('gdgoc_divisions_data');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [events, setEvents] = useState<OrganizationEvent[]>(() => {
+    try {
+      const raw = localStorage.getItem('gdgoc_events_data');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [submissions, setSubmissions] = useState<KasSubmission[]>(() => {
+    try {
+      const raw = localStorage.getItem('gdgoc_kas_submissions');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [expenses, setExpenses] = useState<KasExpense[]>(() => {
+    try {
+      const raw = localStorage.getItem('gdgoc_kas_expenses');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [batchInfo, setBatchInfo] = useState<{ name: string; year: number }>({
+    name: 'Batch 2026',
+    year: 2026,
+  });
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const { data: memData } = await supabase.from('members').select('*');
+        if (memData) setMembers(memData as Member[]);
+
+        const { data: divData } = await supabase.from('divisions').select('*');
+        if (divData) setDivisions(divData as Division[]);
+
+        const { data: evtData } = await supabase.from('events').select('*');
+        if (evtData) setEvents(evtData as OrganizationEvent[]);
+
+        const { data: subData } = await supabase.from('kas_submissions').select('*');
+        if (subData) setSubmissions(subData as KasSubmission[]);
+
+        const { data: expData } = await supabase.from('kas_expenses').select('*');
+        if (expData) setExpenses(expData as KasExpense[]);
+
+        const { data: bData } = await supabase.from('batches').select('*').eq('is_active', true).maybeSingle();
+        if (bData) {
+          setBatchInfo({ name: bData.name, year: bData.year });
+        }
+      } catch {
+        // fallback
+      }
+    }
+    loadData();
+  }, []);
+
+  const metrics: DashboardMetrics = useMemo(() => {
     // 1. Data Member
-    const members: Member[] = safeParse('gdgoc_members_data', []);
     const activeMembersCount = members.filter((m) => m.status === 'active').length;
 
-    // 2. Data Divisi
-    const divisions: Division[] = safeParse('gdgoc_divisions_data', []);
+    // 2. Data Event Terlaksana (absensi final)
+    const completedEventsCount = events.filter((e) => e.attendance_finalized).length;
 
-    // 3. Data Event Terlaksana (absensi final)
-    const events: OrganizationEvent[] = safeParse('gdgoc_events_data', []);
-    const completedEventsCount = events.filter(
-      (e) => e.attendance_finalized
-    ).length;
-
-    // 4. Saldo Kas (pemasukan approved dikurangi pengeluaran)
-    const submissions: KasSubmission[] = safeParse('gdgoc_kas_submissions', []);
+    // 3. Saldo Kas (pemasukan approved dikurangi pengeluaran)
     const totalApproved = submissions
       .filter((s) => s.status === 'approved')
       .reduce((sum, s) => sum + s.total_amount, 0);
     const pendingCashCount = submissions.filter((s) => s.status === 'pending').length;
 
-    const expenses: KasExpense[] = safeParse('gdgoc_kas_expenses', []);
     const manualIncome = expenses
       .filter((e) => e.type === 'income')
       .reduce((sum, e) => sum + e.amount, 0);
@@ -65,10 +127,10 @@ export function useDashboard() {
       divisionsCount: divisions.length,
       pendingCashCount,
       totalMembersCount: members.length,
-      batchName: 'Batch 2026',
-      batchYear: 2026,
+      batchName: batchInfo.name,
+      batchYear: batchInfo.year,
     };
-  }, []);
+  }, [members, events, submissions, expenses, divisions, batchInfo]);
 
   return {
     metrics,

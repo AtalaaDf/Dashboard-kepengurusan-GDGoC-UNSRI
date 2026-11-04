@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/data/auth/auth-context';
-import type { UserRole } from '@/types';
 import { loginSchema } from './login.schema';
-import { DUMMY_PASSWORD } from '@/data/auth/dummy-accounts';
 
 export function useLogin() {
   const [email, setEmail] = useState('');
@@ -13,7 +11,7 @@ export function useLogin() {
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { signIn, signInAsDummy } = useAuth();
+  const { signIn } = useAuth();
   const navigate = useNavigate();
 
   const handleEmailChange = (val: string) => {
@@ -26,19 +24,6 @@ export function useLogin() {
     setPassword(val);
     if (passwordError) setPasswordError(undefined);
     if (formError) setFormError(null);
-  };
-
-  const handleQuickLoginAsRole = (role: UserRole) => {
-    signInAsDummy(role);
-    navigate('/dashboard', { replace: true });
-  };
-
-  const handleFillDummy = (dummyEmail: string) => {
-    setEmail(dummyEmail);
-    setPassword(DUMMY_PASSWORD);
-    setEmailError(undefined);
-    setPasswordError(undefined);
-    setFormError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -81,8 +66,6 @@ export function useLogin() {
     isSubmitting,
     handleEmailChange,
     handlePasswordChange,
-    handleQuickLoginAsRole,
-    handleFillDummy,
     handleSubmit,
   };
 }

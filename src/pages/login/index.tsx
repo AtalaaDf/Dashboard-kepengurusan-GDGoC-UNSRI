@@ -17,7 +17,6 @@ export const LoginPage: React.FC = () => {
     isSubmitting,
     handleEmailChange,
     handlePasswordChange,
-    handleQuickLoginAsRole,
     handleSubmit,
   } = useLogin();
 
@@ -29,7 +28,7 @@ export const LoginPage: React.FC = () => {
 
   return (
     <div className="relative min-h-screen w-full flex flex-col justify-between overflow-hidden bg-white">
-      {/* Lingkaran dekorasi pastel statis sesuai desain.md */}
+      {/* Lingkaran dekorasi pastel */}
       <div
         className="pointer-events-none absolute -top-32 -left-32 w-96 h-96 rounded-full bg-[#c3ecf6]/40 blur-2xl"
         aria-hidden="true"
@@ -50,7 +49,6 @@ export const LoginPage: React.FC = () => {
           formError={formError}
           isSubmitting={isSubmitting}
           onSubmit={handleSubmit}
-          onQuickLogin={handleQuickLoginAsRole}
         />
       </div>
 
