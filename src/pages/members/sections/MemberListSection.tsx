@@ -170,7 +170,7 @@ export const MemberListSection: React.FC<MemberListSectionProps> = ({
                                 className="h-8 w-8 text-[#ea4335] hover:bg-[#f8d8d8]"
                                 title="Hapus member permanen"
                               >
-                                <TrashIcon className="w-4 h-4" />
+                                <TrashIcon className="w-4 h-4 shrink-0" />
                               </Button>
                             </>
                           )}
