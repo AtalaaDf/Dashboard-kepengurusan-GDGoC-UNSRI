@@ -110,3 +110,40 @@ export interface KasExpense {
   recorded_by_role: UserRole;
   created_at?: string;
 }
+
+export type TaskStatus = 'not_started' | 'in_progress' | 'done' | 'cancelled';
+export type TaskStage = 'pre_event' | 'on_event' | 'post_event';
+
+export interface TrackerDivision {
+  id: string;
+  event_id: string;
+  name: string;
+  sort_order: number;
+  has_budget_columns: boolean;
+  has_link_column: boolean;
+}
+
+export interface TrackerGroup {
+  id: string;
+  tracker_division_id: string;
+  name: string;
+  sort_order: number;
+}
+
+export interface TrackerTask {
+  id: string;
+  group_id: string;
+  title: string;
+  details: string;
+  status: TaskStatus;
+  pic: string;
+  stage: TaskStage;
+  deadline: string;
+  notes: string;
+  link?: string;
+  quantity?: number;
+  unit_price?: number;
+  buyer_name?: string;
+  receipt?: string;
+  sort_order: number;
+}

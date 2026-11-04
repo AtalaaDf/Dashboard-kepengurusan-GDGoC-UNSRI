@@ -6,6 +6,7 @@ import { DashboardPage } from '@/pages/dashboard';
 import { MembersPage } from '@/pages/members';
 import { MemberDetailPage } from '@/pages/members/detail';
 import { EventsPage } from '@/pages/events';
+import { EventTrackerPage } from '@/pages/events/tracker';
 import { CashPage } from '@/pages/cash';
 import { PublicPaymentPage } from '@/pages/public-payment';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -58,7 +59,7 @@ export const AppRouter: React.FC = () => {
           >
             <Route path="/dashboard" element={<DashboardPage />} />
             
-            {/* Rute Member & Divisi (Tahap 4) */}
+            {/* Rute Member & Divisi */}
             <Route
               path="/members"
               element={
@@ -80,6 +81,14 @@ export const AppRouter: React.FC = () => {
               element={
                 <ProtectedRoute allowedRoles={['superadmin', 'admin', 'po']}>
                   <EventsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/events/:id/tracker"
+              element={
+                <ProtectedRoute allowedRoles={['superadmin', 'admin', 'po']}>
+                  <EventTrackerPage />
                 </ProtectedRoute>
               }
             />

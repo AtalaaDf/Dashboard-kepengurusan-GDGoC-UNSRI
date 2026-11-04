@@ -1,5 +1,6 @@
-import React from 'react';
-import type { OrganizationEvent } from '@/types';
+import React, { useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import type { OrganizationEvent, TrackerTask } from '@/types';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -9,6 +10,7 @@ import {
   CalendarDaysIcon,
   CheckBadgeIcon,
   XCircleIcon,
+  ClipboardDocumentCheckIcon,
 } from '@heroicons/react/24/outline';
 
 interface EventListSectionProps {
@@ -38,6 +40,33 @@ export const EventListSection: React.FC<EventListSectionProps> = ({
   onOpenAttendance,
   onCancelEvent,
 }) => {
+  // Hitung persentase tugas tracker per event
+  const allTasks: TrackerTask[] = useMemo(() => {
+    const raw = localStorage.getItem('gdgoc_tracker_tasks');
+    return raw ? JSON.parse(raw) : [];
+  }, []);
+
+  const getEventProgress = (eventId: string): number => {
+    const rawDivs = localStorage.getItem('gdgoc_tracker_divisions');
+    const divs = rawDivs ? JSON.parse(rawDivs) : [];
+    const eventDivIds = new Set(
+      divs.filter((d: { event_id: string }) => d.event_id === eventId).map((d: { id: string }) => d.id)
+    );
+
+    const rawGrps = localStorage.getItem('gdgoc_tracker_groups');
+    const grps = rawGrps ? JSON.parse(rawGrps) : [];
+    const eventGrpIds = new Set(
+      grps
+        .filter((g: { tracker_division_id: string }) => eventDivIds.has(g.tracker_division_id))
+        .map((g: { id: string }) => g.id)
+    );
+
+    const eventTasks = allTasks.filter((t) => eventGrpIds.has(t.group_id) && t.status !== 'cancelled');
+    if (eventTasks.length === 0) return 0;
+    const doneTasks = eventTasks.filter((t) => t.status === 'done');
+    return Math.round((doneTasks.length / eventTasks.length) * 100);
+  };
+
   return (
     <div className="flex flex-col gap-5">
       {/* Search and Filters */}
@@ -86,6 +115,7 @@ export const EventListSection: React.FC<EventListSectionProps> = ({
           {events.map((evt) => {
             const isCancelled = evt.status === 'cancelled';
             const isFinalized = evt.attendance_finalized;
+            const progress = getEventProgress(evt.id);
 
             return (
               <div
@@ -110,26 +140,50 @@ export const EventListSection: React.FC<EventListSectionProps> = ({
                     {evt.name}
                   </h3>
 
-                  <div className="flex items-center gap-1.5 text-xs text-[#1e1e1e]/60">
-                    <CalendarDaysIcon className="w-4 h-4 shrink-0" />
-                    <span>{formatDate(evt.event_date)}</span>
+                  <div className="flex items-center justify-between text-xs text-[#1e1e1e]/60">
+                    <div className="flex items-center gap-1.5">
+                      <CalendarDaysIcon className="w-4 h-4 shrink-0" />
+                      <span>{formatDate(evt.event_date)}</span>
+                    </div>
+
+                    {!isCancelled && (
+                      <span className="font-medium text-[#34a853]">
+                        {progress}% tracker selesai
+                      </span>
+                    )}
                   </div>
                 </div>
 
                 {/* Aksi Event */}
-                <div className="pt-3 border-t border-[#1e1e1e]/10 flex items-center justify-between gap-2">
-                  {canRecordAttendance && !isCancelled && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onOpenAttendance(evt)}
-                      className="flex items-center gap-1.5"
-                    >
-                      <CheckBadgeIcon className="w-4 h-4 text-[#4285f4]" />
-                      <span>{isFinalized ? 'Koreksi Absensi' : 'Catat Absensi'}</span>
-                    </Button>
-                  )}
+                <div className="pt-3 border-t border-[#1e1e1e]/10 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    {canRecordAttendance && !isCancelled && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onOpenAttendance(evt)}
+                        className="flex items-center gap-1.5"
+                      >
+                        <CheckBadgeIcon className="w-4 h-4 text-[#4285f4]" />
+                        <span>{isFinalized ? 'Absensi' : 'Absensi'}</span>
+                      </Button>
+                    )}
+
+                    {!isCancelled && (
+                      <Link to={`/events/${evt.id}/tracker`}>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          className="flex items-center gap-1.5"
+                        >
+                          <ClipboardDocumentCheckIcon className="w-4 h-4 text-[#1e1e1e]" />
+                          <span>Tracker</span>
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
 
                   {canManageEvents && !isCancelled && (
                     <Button
@@ -152,4 +206,3 @@ export const EventListSection: React.FC<EventListSectionProps> = ({
     </div>
   );
 };
-
