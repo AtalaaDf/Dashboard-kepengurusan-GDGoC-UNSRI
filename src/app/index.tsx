@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { AuthProvider, useAuth } from '@/data/auth/auth-context';
 import { LoginPage } from '@/pages/login';
 import { DashboardPage } from '@/pages/dashboard';
+import { MembersPage } from '@/pages/members';
+import { MemberDetailPage } from '@/pages/members/detail';
 import { AppLayout } from '@/components/layout/AppLayout';
 import type { UserRole } from '@/types';
 
@@ -52,12 +54,20 @@ export const AppRouter: React.FC = () => {
           >
             <Route path="/dashboard" element={<DashboardPage />} />
             
-            {/* Fallback sementara untuk rute tahap selanjutnya */}
+            {/* Rute Member & Divisi (Tahap 4) */}
             <Route
               path="/members"
               element={
                 <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
-                  <div className="p-4">Halaman Member (Tahap 4)</div>
+                  <MembersPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/members/:id"
+              element={
+                <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
+                  <MemberDetailPage />
                 </ProtectedRoute>
               }
             />
