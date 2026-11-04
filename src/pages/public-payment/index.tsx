@@ -3,7 +3,6 @@ import { usePublicPayment } from './data/use-public-payment';
 import { PublicPaymentFormSection } from './sections/PublicPaymentFormSection';
 import { PublicPaymentConfirmationModal } from './sections/PublicPaymentConfirmationModal';
 import { FloatingOrnaments } from '@/components/common/FloatingOrnaments';
-import { Footer } from '@/components/layout/Footer';
 
 export const PublicPaymentPage: React.FC = () => {
   const {

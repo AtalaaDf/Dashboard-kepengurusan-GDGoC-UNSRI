@@ -36,10 +36,10 @@ export const LoginFormSection: React.FC<LoginFormSectionProps> = ({
           className="h-10 w-auto mb-4 object-contain"
         />
         <h1 className="text-2xl font-semibold text-[#1e1e1e] tracking-tight">
-          Masuk ke Dashboard
+          Sistem Informasi Manajemen
         </h1>
         <p className="text-sm text-[#1e1e1e]/60 mt-1">
-          Gunakan akun jabatan yang telah terdaftar
+          GDGoC Universitas Sriwijaya • 2026-2027
         </p>
       </div>
 
@@ -51,11 +51,11 @@ export const LoginFormSection: React.FC<LoginFormSectionProps> = ({
 
       <form onSubmit={onSubmit} className="flex flex-col gap-5">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="login-email">Email Akun Jabatan</Label>
+          <Label htmlFor="login-email">Email</Label>
           <Input
             id="login-email"
             type="email"
-            placeholder="nama@gdgocunsri.org"
+            placeholder="nama@gdgoc.com"
             value={emailValue}
             onChange={(e) => onEmailChange(e.target.value)}
             isError={Boolean(emailError)}
