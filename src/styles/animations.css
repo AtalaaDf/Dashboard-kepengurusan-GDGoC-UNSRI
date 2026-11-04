@@ -1,0 +1,39 @@
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 300ms ease-in-out forwards;
+}
+
+.animate-dialog-fade {
+  animation: fadeIn 200ms ease-out forwards;
+}
+
+.animate-toast-fade {
+  animation: fadeIn 200ms ease-out forwards;
+}
+
+.transition-hover {
+  transition-property: color, background-color, border-color;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-dialog-fade,
+  .animate-toast-fade {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+  .transition-hover {
+    transition: none !important;
+  }
+}
+

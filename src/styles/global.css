@@ -1,0 +1,38 @@
+@import "tailwindcss";
+@import "./animations.css";
+
+@theme {
+  --font-sans: "Google Sans Flex", "Google Sans", ui-sans-serif, system-ui, sans-serif;
+
+  --color-gdg-blue-500: #4285f4;
+  --color-gdg-green-500: #34a853;
+  --color-gdg-yellow-600: #f9ab00;
+  --color-gdg-red-500: #ea4335;
+
+  --color-gdg-halftone-blue: #57caff;
+  --color-gdg-halftone-green: #5cdb6d;
+  --color-gdg-halftone-yellow: #ffd427;
+  --color-gdg-halftone-red: #ff7daf;
+
+  --color-gdg-pastel-blue: #c3ecf6;
+  --color-gdg-pastel-green: #ccf6c5;
+  --color-gdg-pastel-yellow: #ffe7a5;
+  --color-gdg-pastel-red: #f8d8d8;
+
+  --color-gdg-off-white: #f0f0f0;
+  --color-gdg-black: #1e1e1e;
+  --color-gdg-white: #ffffff;
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-gdg-white);
+  color: var(--color-gdg-black);
+  margin: 0;
+  padding: 0;
+}
+
