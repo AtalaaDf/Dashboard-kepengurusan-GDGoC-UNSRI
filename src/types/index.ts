@@ -60,3 +60,19 @@ export interface Attendance {
   recorded_by_role: UserRole;
   created_at?: string;
 }
+
+export interface CompetitionEntry {
+  id: string;
+  member_id: string;
+  competition_name: string;
+  organizer: string;
+  created_at?: string;
+}
+
+export interface Punishment {
+  id: string;
+  member_id: string;
+  is_completed: boolean;
+  completed_at?: string | null;
+  created_at?: string;
+}
