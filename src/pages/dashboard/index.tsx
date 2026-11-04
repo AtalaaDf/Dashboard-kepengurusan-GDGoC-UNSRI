@@ -2,11 +2,10 @@ import React from 'react';
 import { useDashboard } from './data/use-dashboard';
 import { DashboardHeaderSection } from './sections/DashboardHeaderSection';
 import { DashboardBentoSection } from './sections/DashboardBentoSection';
-import { DashboardRoleInfoSection } from './sections/DashboardRoleInfoSection';
 import { ANIMATIONS } from '@/lib/animations';
 
 export const DashboardPage: React.FC = () => {
-  const { metrics, canReviewCash, role } = useDashboard();
+  const { metrics, canReviewCash } = useDashboard();
 
   return (
     <div className={`flex flex-col gap-6 ${ANIMATIONS.PAGE_FADE_IN}`}>
@@ -17,8 +16,6 @@ export const DashboardPage: React.FC = () => {
       />
 
       <DashboardBentoSection metrics={metrics} />
-
-      <DashboardRoleInfoSection role={role} />
     </div>
   );
 };
