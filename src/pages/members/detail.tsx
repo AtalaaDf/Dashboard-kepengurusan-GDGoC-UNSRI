@@ -57,7 +57,6 @@ export const MemberDetailPage: React.FC = () => {
             <span>Kembali</span>
           </Button>
         </Link>
-        <span className="text-xs text-[#1e1e1e]/40">/ Detail Member</span>
       </div>
 
       {actionError && (
