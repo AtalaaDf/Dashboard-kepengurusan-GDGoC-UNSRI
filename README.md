@@ -102,4 +102,111 @@ Aplikasi ini dibangun menggunakan arsitektur modern berbasis React dengan fokus 
 
 ---
 
+## 3. Panduan Konfigurasi dan Instalasi
 
+Ikuti langkah-langkah di bawah ini untuk menjalankan proyek di lingkungan lokal:
+
+### Prasyarat
+- **Node.js**: Versi 18.x atau lebih baru.
+- **Package Manager**: npm (bawaan Node.js).
+- **Akun Supabase**: Proyek Supabase aktif untuk basis data dan autentikasi.
+
+### Langkah 1: Kloning Repositori dan Instalasi Dependensi
+```bash
+git clone <url-repository-anda>
+cd Dashboard-GDGoC
+npm install
+```
+
+### Langkah 2: Konfigurasi Environment Variables (`.env`)
+Salin berkas template konfigurasi lingkungan `.env.example` menjadi `.env`:
+```bash
+cp .env.example .env
+```
+
+Buka berkas `.env` dan masukkan kredensial proyek Supabase Anda:
+```env
+VITE_SUPABASE_URL=https://xxxxxxxxxxxxxxxxxxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJh......
+```
+*Catatan: Nilai URL dan Anon Key dapat diperoleh pada dashboard Supabase di menu **Project Settings > API**.*
+
+### Langkah 3: Konfigurasi Skema Basis Data di Supabase
+1. Masuk ke dashboard proyek Supabase Anda.
+2. Buka menu **SQL Editor**.
+3. Buka berkas spesifikasi basis data proyek ini yang terletak di [`docs/database.md`](docs/database.md).
+4. Salin seluruh skrip DDL SQL yang ada di bagian bawah dokumen tersebut (Bagian 4 & 5: DDL Script & Initial Data), lalu jalankan (*Run*) di SQL Editor Supabase.
+5. Skrip tersebut akan otomatis membentuk:
+   - Tipe ENUM (`user_role`, `division_type`, `event_type`, `submission_status`, dll.)
+   - Tabel-tabel relasional (`batches`, `divisions`, `profiles`, `members`, `events`, `attendances`, `kas_submissions`, dll.)
+   - Fungsi pembantu hak akses `get_current_role()`
+   - Aturan keamanan baris (*Row Level Security Policies*)
+   - Data batch awal (`Batch 2026`)
+
+### Langkah 4: Menyiapkan Akun Pengurus Pertama (Superadmin)
+Karena pendaftaran akun baru tidak dibuka untuk publik demi keamanan data organisasi:
+1. Buka menu **Authentication > Users** di dashboard Supabase.
+2. Klik **Add User** > **Create User**. Masukkan email dan kata sandi yang diinginkan (misal: `superadmin@gdgocunsri.org`).
+3. Buka menu **Table Editor** > pilih tabel **`profiles`**.
+4. Tambahkan baris baru (*Insert Row*):
+   - Kolom `id`: Tempelkan UUID user yang baru dibuat pada menu Authentication.
+   - Kolom `role`: Pilih `'superadmin'`.
+5. Akun Superadmin kini siap digunakan untuk masuk ke dashboard.
+
+### Langkah 5: Menjalankan Server Pengembangan
+Jalankan server lokal menggunakan perintah:
+```bash
+npm run dev
+```
+Aplikasi akan aktif di alamat `http://localhost:5173`.
+
+---
+
+## 4. Perintah yang Tersedia (Scripts)
+
+| Perintah | Deskripsi |
+|---|---|
+| `npm run dev` | Menjalankan aplikasi pada mode pengembangan lokal (Vite Dev Server). |
+| `npm run build` | Melakukan kompilasi TypeScript dan membangun aset produksi ke folder `dist/`. |
+| `npm run lint` | Menjalankan pemeriksaan kualitas kode menggunakan ESLint. |
+| `npm run preview` | Menjalankan pratinjau lokal dari berkas hasil kompilasi folder `dist/`. |
+
+---
+
+## 5. Struktur Direktori Proyek
+
+```text
+Dashboard-GDGoC/
+├── docs/                      # Dokumentasi teknis, aturan desain, dan skema SQL Supabase
+│   ├── agent.md               # Spesifikasi arsitektur kode dan ketentuan sistem
+│   ├── database.md            # Kamus data dan skrip DDL SQL resmi Supabase
+│   └── desain.md              # Acuan sistem desain dan palet warna GDGoC
+├── public/                    # Aset statis publik (ikon, logo)
+├── src/
+│   ├── app/                   # Konfigurasi routing utama (AppRouter) dan pelindung peran
+│   ├── components/
+│   │   ├── common/            # Komponen umum (ErrorBoundary, FloatingOrnaments, PageProgressBar)
+│   │   ├── layout/            # Kerangka tata letak (AppLayout, Sidebar, Footer)
+│   │   └── ui/                # Komponen antarmuka atomik (Button, Input, Badge, Dialog, dll.)
+│   ├── data/                  # Konteks autentikasi global dan data bersama
+│   ├── lib/                   # Klien Supabase, pemformat mata uang/tanggal, helper animasi
+│   ├── pages/                 # Halaman aplikasi
+│   │   ├── cash/              # Modul verifikasi pembayaran kas dan pencatatan kas
+│   │   ├── dashboard/         # Modul ringkasan metrik bento box
+│   │   ├── events/            # Modul agenda kegiatan, absensi, dan lembar tracker
+│   │   ├── login/             # Modul masuk akun pengurus
+│   │   ├── members/           # Modul direktori anggota, divisi, dan detail kelulusan
+│   │   └── public-payment/    # Formulir bayar kas publik (/bayar)
+│   ├── styles/                # Token gaya Tailwind dan definisi animasi CSS
+│   └── types/                 # Definisi tipe data TypeScript global
+├── .env.example               # Template variabel lingkungan
+├── package.json               # Daftar dependensi dan perintah proyek
+├── tsconfig.json              # Konfigurasi TypeScript
+└── vite.config.ts             # Konfigurasi Vite
+```
+
+---
+
+## 6. Hak Cipta dan Lisensi
+
+Dikembangkan untuk keperluan operasional **Google Developer Group on Campus (GDGoC) Universitas Sriwijaya**. Seluruh hak cipta dan merek dagang materi GDGoC adalah milik Google LLC dan komunitas terkait.
